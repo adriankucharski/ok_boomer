@@ -3,7 +3,7 @@ const k = kaboom({
 	global: true,
 	fullscreen: true,
 	debug: true,
-	scale: 7,
+	scale: 5,
 	clearColor: [0, 0, 0, 1],
 	connect: "ws://localhost:8000/",
 
@@ -35,7 +35,114 @@ loadSprite("border", "https://kaboomjs.com/pub/examples/img/steel.png")
 loadSprite("bomb", "https://i.imgur.com/4GV5ZUa.png")
 loadSprite("fire", "https://i.imgur.com/LhiUi9O.png")
 
+const letMeIn = async (u) => {
+	console.log("username");
+	const response = await fetch('/login', {
+			method: 'POST',
+			body: JSON.stringify({
+				type: 'login',
+				UID: u 
+			}), 
+			headers: {
+			'Content-Type': 'application/json'
+			}
+		});   
+	const myJson = await response.json(); //extract JSON from the http response
+	go("menu",u);
+	// do something with myJson
+}
+
+
 // define a scene
+scene("login", () => {
+	var username = "";
+
+	const helloSing = add([
+		text("Witaj, podaj swoj nick:", 6),
+		pos(20, 20),
+	]);
+
+	const userText = add([
+		text(username, 6),
+		color(239/255,170/255,196/255),
+		pos(20, 30),
+
+		charInput((ch) => {
+			username += ch;
+			userText.text = username;
+		}),
+
+		keyPress("backspace", () => {
+			username = username.slice(0, -1);
+			userText.text = username;
+		}),
+		
+		keyPress("enter", () => {
+			//letMeIn(username);
+			go("menu",username);
+		})
+	]);	
+});
+
+scene("menu", (username) => {
+	const helloUser = add([
+		text("Witaj " + username +". Wybierz klase:", 6),
+		pos(5, 5),
+	]);
+
+	const class1Object = add([
+		// width, height
+		rect(50, 10),
+		pos(25, 20),
+		color(239/255,170/255,196/255),
+        mouseClick(() => {
+			
+			go("main");
+		})
+	]);
+	
+
+
+	const class1Text = add([
+		text("Klasa 1", 4),
+		pos(25+3,20+3)
+	]);
+
+
+	
+	const class2Object = add([
+		// width, height
+		rect(50, 10),
+		pos(25, 35),
+		color(239/255,170/255,196/255),
+		mouseClick(() => {
+			go("main");
+		})
+	]);
+	const class2ObjectText = add([
+		text("Klasa 2", 4),
+		pos(25+3, 35+3),
+	]);
+	const class3Object = add([
+		// width, height
+		rect(50, 10),
+		pos(25, 50),
+		color(239/255,170/255,196/255),
+		mouseClick(() => {
+			go("main");
+		})
+	]);
+	const class3ObjectText = add([
+		text("Klasa 3", 4),
+		pos(25+3, 50+3),
+	]);
+
+
+	
+});
+
+
+
 scene("main", () => {
 
 	layers([
@@ -268,5 +375,5 @@ scene("main", () => {
 
 
 // start the game
-start("main");
+start("login");
 
