@@ -1,0 +1,33 @@
+<html>
+    <script>
+        function socket(){
+            const webSocket = new WebSocket('ws://localhost:33331/');
+            webSocket.onopen = (event) => {
+                const msg = { type: 'login', UID: Math.random() };
+                webSocket.send(JSON.stringify(msg));
+            };
+
+            webSocket.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                console.log(msg);
+            }
+        }
+    </script>
+    <body>
+
+        <script>
+            socket();
+        </script>
+
+        <div id='login' style="display: none;">
+
+        </div>
+
+        <div id='game' style="display: block;">
+
+        </div>
+
+        
+
+    </body>
+</html>
