@@ -1,0 +1,172 @@
+Ad.: 1.a. 
+
+IP:PORT/login POST
+    "client":{
+        "UID": "username" -> str
+    }
+
+    "sever":{
+        "status": 0 | 1, status == 0 poprawnie zalogowano, status == 1 to nick zajęty
+        "classes": [
+            {
+              "class_id": "1",
+              "class_name": "Zwinne nogi",
+              "speed": 2,
+              "bomb_amount": 1,
+              "bomb_range": 1,
+              "live": 3,
+              "description": "Zwiększa szybkość postaci o 1",
+            },
+            {
+              "class_id": "2",
+              "class_name": "Bomber",
+              "speed": 1,
+              "bomb_amount": 2,
+              "bomb_range": 1,
+              "live": 3,
+              "description": "Zwiększa liczbę bomb o 1",
+            },
+            {
+              "class_id": "3",
+              "class_name": "Medyk",
+              "speed": 1,
+              "bomb_amount": 1,
+              "bomb_range": 1,
+              "live": 4,
+              "description": "Zwiększa liczbę żyć o 1",
+            },
+            {
+              "class_id": "4",
+              "class_name": "Rage Bomber",
+              "speed": 1,
+              "bomb_amount": 1,
+              "bomb_range": 2,
+              "live": 3,
+              "description": "Zwiększa zasięg bomb o 1",
+            }
+        ]
+    }
+/* Wybór klasy postaci przez socket */
+client emit -> (nazwa eventu) "login":{
+	"UID": "username" -> str,
+	"class_id": "1" | "2" | "3" | "4"
+}
+
+server emit -> "loggedIn"{
+    "status": 0 | 1, status == 0 poprawnie zalogowano, status == 1 to nick zajęt
+	
+	"map": [ 0 - brak przeszkody, 1 ściana, 2 blok do zniszczenia
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ]
+    "player_xy": {
+        "x": 1,
+        "y": 1
+    }	
+}
+
+
+
+
+Ad.: 1.b. 
+gracz rozłączony -> gracz uśmiercony
+
+
+Ad.: 1.c. 
+opóźnienie do zmian 
+
+client: (nazwa eventu) "request move"{
+    "direction": "left" | "right" | "up" | "back"
+}
+
+server broadcast: (nazwa eventu) "move player":{
+    "UID": "username",
+    "player_xy": {
+        "x": 1,
+        "y": 1
+    }
+}
+
+Ad.: 1.d. 
+
+server broadcast (nazwa eventu) "hit player":{
+    "UID": "username", 
+    "status": "dead" | "nieśmiertelny"
+}
+
+
+Ad.: 1.e. 
+client: "request place bomb":{
+
+}
+server brodcast: (nazwa eventu) "place bomb"{
+    "bomb_xy": {
+        "x": 1,
+        "y": 1
+    }
+}
+
+server brodcast: (nazwa eventu) "place explode"{
+    "bomb_xy": {
+        "x": 1,
+        "y": 1
+    },
+    "radius": 3
+}
+
+
+
+Ad.: 1.f. 
+server broadcast: (nazwa eventu)  "place bonus"
+{ 
+    "bonus_type": "speed" | "bomb_range" | "bomb amount",
+    "bonus_xy": {
+        "x": 1,
+        "y": 1
+    }
+} 
+
+server	broadcast: "remove bonus"{ 
+    "bonus_xy": {
+        "x": 1,
+        "y": 1
+    }
+} 
+
+
+Ad.: 1.j. 
+server broadcast: "remove block"{
+    "blocks":[
+        {"x": 1, "y": 1},
+        {"x": 2, "y": 1},
+        {"x": 4, "y": 1},
+    ]
+}
+
+
+Ad.: 1.k. 
+server broadcast: "update player statistics":{
+    "users": [ 
+        { 
+            "UID": "username1",
+            "lives": 3,
+            "points": 0
+        },
+        { 
+            "UID": "username2",
+            "lives": 2,
+            "points": 0
+        }
+    ],
+}
