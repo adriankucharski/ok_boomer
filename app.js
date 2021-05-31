@@ -1,34 +1,38 @@
-const PORT = process.env.PORT || 33331;
+const PORT = process.env.PORT || 3000;
+const PORT_SOCKETIO = process.env.PORT || 3001;
 
 const createError = require('http-errors');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const server = require('http').createServer();
-const io = require('socket.io')(server);
 const app = express();
 const loginRouter = express.Router();
+const cors = require('cors');
 
 
+const server = app.listen(PORT, function () {
+  console.log(`Listening on port ${PORT}`);
+  console.log(`http://localhost:${PORT}`);
+});
+const io = require('socket.io')(server, { transport : ['websocket'] });
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
  *                   Game global variables and const
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-let connectionID = 0;
-const USERS = {};
+var USERS = {};
 const MAP = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,0,0,2,2,2,2,2,2,2,0,0,0,1],
+  [1,0,1,2,1,2,1,2,1,2,1,0,1,0,1],
+  [1,2,2,2,2,2,0,2,0,2,0,2,2,2,1],
+  [1,2,1,2,1,2,1,2,1,2,1,0,1,2,1],
+  [1,2,2,2,2,0,2,0,0,2,2,2,2,2,1],
+  [1,2,1,0,1,2,1,2,1,2,1,0,1,2,1],
+  [1,2,0,2,2,2,2,2,0,2,0,2,0,2,1],
+  [1,2,1,2,1,2,1,0,1,2,1,2,1,2,1],
+  [1,0,2,2,0,2,2,2,0,2,2,2,2,2,1],
+  [1,0,1,0,1,2,1,0,1,0,1,0,1,0,1],
+  [1,0,0,2,2,2,2,2,2,2,2,0,0,0,1],
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 const CLASESS = [
@@ -69,8 +73,10 @@ const CLASESS = [
     "description": "Zwiększa zasięg bomb o 1",
   }
 ];
-
-
+const BOMBS = [];
+const BOMB_TIMER = 2000;
+const PLAYERS_NUMBER = 1;
+let PLAYERS = 0;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
@@ -97,7 +103,8 @@ function getStatOfClass(class_id, stat, classes = CLASESS){
 }
 
 function appendPlayer(username, class_id, users = USERS, map = MAP){
-  users[username]['class'] = class_id;
+  console.log(username);
+  USERS[username]['class'] = class_id;
   users[username]['player_xy'] = [0,0];
 
   let height = map.length;
@@ -149,25 +156,36 @@ function movePlayer(username, direction, users = USERS, map = MAP){
  *                   Express init
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-// Login router
-loginRouter.post('/login', function(req, res, next) {
-  const username = req.body.UID;
-  if (username === undefined || Object.keys(USERS).includes(username))
-    return res.json({'status': 1});
-  
-    if (Object.keys(USERS).length >= 4)
-    return res.json({'status': 1});
-  
-  USERS[username] = {};
-  res.json({'status': 0, 'classes': CLASESS});
-});
-app.use('/', loginRouter);
-
 // view engine setup
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(cors({credentials: true, origin: true}));
+app.use(express.urlencoded({ extended: false }));
+
+// Login router
+loginRouter.post('/login', function(req, res) {
+  console.log('Request', req.body);
+  const username = req.body.UID;
+  if (username === undefined || Object.keys(USERS).includes(username))
+    return res.json({'status': 1});
+  
+  if (Object.keys(USERS).length >= PLAYERS_NUMBER)
+    return res.json({'status': 1});
+
+  
+  USERS[username] = {};
+  res.json({'status': 0, 'classes': CLASESS});
+});
+loginRouter.post('/reset', function(req, res){
+  USERS = {};
+  PLAYERS = 0;
+  res.json({'status': 0});
+});
+
+app.use('/', loginRouter);
+
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -182,7 +200,7 @@ app.use(function (err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.render('error');
+  res.json({ error: err });
 });
 
 
@@ -191,15 +209,33 @@ app.use(function (err, req, res, next) {
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 io.on('connection', (socket) => {
+  console.log('connected');
 
-  socket.on('login', (username, class_id) => {
+  socket.on('login', (data) => {
+    if(PLAYERS >= PLAYERS_NUMBER)
+      return socket.emit('loggedIn', {
+        'status': 1
+      });
+    
+
+    username = data['UID']
+    class_id = data['class_id']
     socket.username = username;
     appendPlayer(username, class_id);
+    
+    ++PLAYERS;
     socket.emit('loggedIn', {
       'status': 0,
       'map': MAP,
       'player_xy': USERS[username]['player_xy']
     });
+
+    if (PLAYERS == PLAYERS_NUMBER){
+
+      io.sockets.emit('start game', {
+
+      });
+    }
   });
   
   // Ad.: 1.c. poruszanie się gracza
@@ -209,11 +245,33 @@ io.on('connection', (socket) => {
       io.sockets.emit('move player', {'UID': socket.username, 'player_xy': {'x': xy[0], 'y': xy[1]}});
   });
 
+  // Ad.: 1.e. stawianie i wybuch bomb
   socket.on('request place bomb', ()=>{
-    let xy = users[socket.username]['player_xy'];
+    // Gracz nie może postawić zbyt wielu bomb
+    if(users[socket.username]['bomb_planted'] >= users[socket.username]['bomb_amount'])
+      return;
     
+    // Nie można postawić bomby na bombie
+    let xy = users[socket.username]['player_xy'];
+    let index = findArray(BOMBS, xy);
+    if (index != -1)
+      return;
+    
+    // Gracz może postawić bombę 
+    BOMBS.push(xy);
+    io.sockets.emit('place bomb', {'bomb_xy': {'x': xy[0], 'y': xy[1]}});
+
+    // Ustaw czas do wybuchu bomby
+    setTimeout((xy) => {
+      let radius = users[socket.username]['bomb_range'];
+
+      io.sockets.emit('place explode', {'bomb_xy': {'x': xy[0], 'y': xy[1]}, 'radius': radius});
+    }, BOMB_TIMER);
   });
   
 });
+
+
+
 
 module.exports = app;
