@@ -6,8 +6,9 @@ const k = kaboom({
 	scale: 5,
 	clearColor: [0, 0, 0, 1],
 	connect: "ws://localhost:8000/",
-
 });
+
+
 /*
 var ws = new WebSocket("ws://localhost:3000/");
 
@@ -35,21 +36,25 @@ loadSprite("border", "https://kaboomjs.com/pub/examples/img/steel.png")
 loadSprite("bomb", "https://i.imgur.com/4GV5ZUa.png")
 loadSprite("fire", "https://i.imgur.com/LhiUi9O.png")
 
-const letMeIn = async (u) => {
-	console.log("username");
-	const response = await fetch('/login', {
-			method: 'POST',
-			body: JSON.stringify({
-				type: 'login',
-				UID: u 
-			}), 
-			headers: {
+var SERVER_ADDRESS = 'http://localhost:8000';
+
+async function postData(url, data) {
+	console.log(data);
+	// Default options are marked with *
+	const response = await fetch(url, {
+		method: 'POST', // *GET, POST, PUT, DELETE, etc.
+		mode: 'cors', // no-cors, *cors, same-origin
+		cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+		credentials: 'same-origin', // include, *same-origin, omit
+		headers: {
 			'Content-Type': 'application/json'
-			}
-		});   
-	const myJson = await response.json(); //extract JSON from the http response
-	go("menu",u);
-	// do something with myJson
+			// 'Content-Type': 'application/x-www-form-urlencoded',
+		},
+		redirect: 'follow', // manual, *follow, error
+		referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+		body: JSON.stringify(data)
+	});
+	return response.json(); // parses JSON response into native JavaScript objects
 }
 
 
@@ -60,6 +65,12 @@ scene("login", () => {
 	const helloSing = add([
 		text("Witaj, podaj swoj nick:", 6),
 		pos(20, 20),
+	]);
+
+	const ErrorMessage = add([
+		text("", 4),
+		pos(20, 80),
+		color(255/255,0,0)
 	]);
 
 	const userText = add([
@@ -78,13 +89,22 @@ scene("login", () => {
 		}),
 		
 		keyPress("enter", () => {
-			//letMeIn(username);
-			go("menu",username);
+			let response = postData(SERVER_ADDRESS+'/login',{UID: username});
+			response.then(function(result) {
+				if(result.status == 1){
+					ErrorMessage.text = "This username is already taken";
+				}
+				else if(result.status == 0){
+					go("menu",username,result.classes);
+				}
+			})
+			
+				
 		})
 	]);	
 });
 
-scene("menu", (username) => {
+scene("menu", (username,classes) => {
 	const helloUser = add([
 		text("Witaj " + username +". Wybierz klase:", 6),
 		pos(5, 5),
@@ -92,7 +112,7 @@ scene("menu", (username) => {
 
 	const class1Object = add([
 		// width, height
-		rect(50, 10),
+		rect(200, 13),
 		pos(25, 20),
 		color(239/255,170/255,196/255),
         mouseClick(() => {
@@ -100,43 +120,68 @@ scene("menu", (username) => {
 			go("main");
 		})
 	]);
-	
-
-
-	const class1Text = add([
-		text("Klasa 1", 4),
+	const class1ObjectText = add([
+		text(classes[0].class_name, 4),
 		pos(25+3,20+3)
 	]);
-
-
+	const class1ObjectDescription = add([
+		text('Description: '+classes[0].description, 4),
+		pos(25+3, 25+3),
+	]);
 	
 	const class2Object = add([
 		// width, height
-		rect(50, 10),
-		pos(25, 35),
+		rect(200, 13),
+		pos(25, 38),
 		color(239/255,170/255,196/255),
 		mouseClick(() => {
 			go("main");
 		})
 	]);
 	const class2ObjectText = add([
-		text("Klasa 2", 4),
-		pos(25+3, 35+3),
+		text(classes[1].class_name, 4),
+		pos(25+3, 38+3),
 	]);
+	const class2ObjectDescription = add([
+		text('Description: '+classes[1].description, 4),
+		pos(25+3, 43+3),
+	]);
+	
 	const class3Object = add([
 		// width, height
-		rect(50, 10),
-		pos(25, 50),
+		rect(200, 13),
+		pos(25, 56),
 		color(239/255,170/255,196/255),
 		mouseClick(() => {
 			go("main");
 		})
 	]);
 	const class3ObjectText = add([
-		text("Klasa 3", 4),
-		pos(25+3, 50+3),
+		text(classes[2].class_name, 4),
+		pos(25+3, 56+3),
 	]);
-
+	const class3ObjectDescription = add([
+		text('Description: '+classes[2].description, 4),
+		pos(25+3, 61+3),
+	]);
+	
+	const class4Object = add([
+		// width, height
+		rect(200, 13),
+		pos(25, 74),
+		color(239/255,170/255,196/255),
+		mouseClick(() => {
+			go("main");
+		})
+	]);
+	const class4ObjectText = add([
+		text(classes[3].class_name, 4),
+		pos(25+3, 74+3),
+	]);
+	const class4ObjectDescription = add([
+		text('Description: '+classes[3].description, 4),
+		pos(25+3, 79+3),
+	]);
 
 	
 });
