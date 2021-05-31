@@ -1,24 +1,7 @@
 <html>
-    <script>
-        function socket(){
-            const webSocket = new WebSocket('ws://localhost:33331/');
-            webSocket.onopen = (event) => {
-                const msg = { type: 'login', UID: Math.random() };
-                webSocket.send(JSON.stringify(msg));
-            };
+    <script src="https://cdn.socket.io/3.1.3/socket.io.min.js" integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh" crossorigin="anonymous"></script>
 
-            webSocket.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
-                console.log(msg);
-            }
-        }
-    </script>
     <body>
-
-        <script>
-            socket();
-        </script>
-
         <div id='login' style="display: none;">
 
         </div>
@@ -28,6 +11,54 @@
         </div>
 
         
+        <script>
+            async function postData(url, data = {}) {
+                console.log(data);
+                // Default options are marked with *
+                const response = await fetch(url, {
+                    method: 'POST', // *GET, POST, PUT, DELETE, etc.
+                    mode: 'cors', // no-cors, *cors, same-origin
+                    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+                    credentials: 'same-origin', // include, *same-origin, omit
+                    headers: {
+                        'Content-Type': 'application/json'
+                        // 'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    redirect: 'follow', // manual, *follow, error
+                    referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+                    body: JSON.stringify(data)
+                });
+                return response.json(); // parses JSON response into native JavaScript objects
+            }
+            
+            (async function(){
+                var connectionOptions =  {
+                    "force new connection" : true,
+                    "reconnectionAttempts": "Infinity", 
+                    "timeout" : 10000,                  
+                    "transports" : ["websocket"]
+                };
+                await postData('http://localhost:3000/reset');
+                const response = await postData('http://localhost:3000/login', {'UID': 'adrian'});
+                console.log(response);
+                
+                const socket = io.connect('http://localhost:3000', connectionOptions);
+                
+                socket.on('connect', ()=>{
+                    socket.emit('login', {UID: 'adrian', class_id: '1'} );
+                    
+                });
 
+                socket.on('loggedIn', (status, map, player_xy)=>{
+                    console.log(status);
+                    console.log(map);
+                    console.log(player_xy);
+                });
+
+                socket.on('start game', ()=>{
+                    
+                });
+            })();
+        </script>
     </body>
 </html>
