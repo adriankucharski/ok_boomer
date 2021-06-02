@@ -4,10 +4,9 @@ const k = kaboom({
 	fullscreen: true,
 	debug: true,
 	scale: 5,
-	clearColor: [0, 0, 0, 1],
-	connect: "ws://localhost:8000/",
+	clearColor: [0, 0, 0, 1]
 });
-
+var socket = null;
 
 /*
 var ws = new WebSocket("ws://localhost:3000/");
@@ -36,7 +35,7 @@ loadSprite("border", "https://kaboomjs.com/pub/examples/img/steel.png")
 loadSprite("bomb", "https://i.imgur.com/4GV5ZUa.png")
 loadSprite("fire", "https://i.imgur.com/LhiUi9O.png")
 
-var SERVER_ADDRESS = 'http://localhost:8000';
+var SERVER_ADDRESS = 'http://localhost:3000';
 
 async function postData(url, data) {
 	console.log(data);
@@ -58,6 +57,8 @@ async function postData(url, data) {
 }
 
 
+
+
 // define a scene
 scene("login", () => {
 	var username = "";
@@ -70,12 +71,12 @@ scene("login", () => {
 	const ErrorMessage = add([
 		text("", 4),
 		pos(20, 80),
-		color(255/255,0,0)
+		color(255 / 255, 0, 0)
 	]);
 
 	const userText = add([
 		text(username, 6),
-		color(239/255,170/255,196/255),
+		color(239 / 255, 170 / 255, 196 / 255),
 		pos(20, 30),
 
 		charInput((ch) => {
@@ -87,121 +88,143 @@ scene("login", () => {
 			username = username.slice(0, -1);
 			userText.text = username;
 		}),
-		
+
 		keyPress("enter", () => {
-			let response = postData(SERVER_ADDRESS+'/login',{UID: username});
-			response.then(function(result) {
-				if(result.status == 1){
+			let response = postData(SERVER_ADDRESS + '/login', { UID: username });
+			response.then(function (result) {
+				if (result.status == 1) {
 					ErrorMessage.text = "This username is already taken";
 				}
-				else if(result.status == 0){
-					go("menu",username,result.classes);
+				else if (result.status == 0) {
+					go("menu", username, result.classes);
 				}
 			})
-			
-				
+
+
 		})
-	]);	
+	]);
 });
 
-scene("menu", (username,classes) => {
+scene("menu", (username, classes) => {
 	const helloUser = add([
-		text("Witaj " + username +". Wybierz klase:", 6),
+		text("Witaj " + username + ". Wybierz klase:", 6),
 		pos(5, 5),
 	]);
 
-	const class1Object = add([
+	function socketInit(button) {
+		var connectionOptions = {
+			"force new connection": true,
+			"reconnectionAttempts": "Infinity",
+			"timeout": 10000,
+			"transports": ["websocket"]
+		};
+	
+		socket = io.connect('http://localhost:3000', connectionOptions);
+		socket.on('connect', () => {
+			console.log("Connected as " + username + " (CLASS_ID: " + button.class.class_id + ")")
+			socket.emit('login', { UID: username, class_id: button.class.class_id });
+			socket.on('loggedIn', (resp) => {
+				console.log(resp.status);
+				console.log(resp.map);
+				console.log(resp.player_xy);
+
+				go("main", username)
+			});
+		});
+	}
+
+	//degine button lifecycle
+	function button() {
+		return {
+			update() {
+				if (this.isHovered()) {
+					this.color = rgb(210 / 255, 140 / 255, 170 / 255);
+					k.cursor("pointer");
+				} else {
+					this.color = rgb(239 / 255, 170 / 255, 196 / 255);
+					k.cursor("default");
+				}
+			},
+			add() {
+				//add onClick handle
+				this.clicks(() => {
+					socketInit(this)
+				});
+				//add class name
+				k.add([
+					text(this.class.class_name, 4),
+					pos(this.pos.x + 3, this.pos.y + 2)
+				]);
+				//add class description
+				k.add([
+					text('Description: ' + this.class.description, 4),
+					pos(this.pos.x + 3, this.pos.y + 7),
+				]);
+			}
+		}
+	}
+	const class1Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 20),
-		color(239/255,170/255,196/255),
-        mouseClick(() => {
-			
-			go("main");
-		})
+		color(239 / 255, 170 / 255, 196 / 255),
+		"button",
+		button(),
+		{
+			class: classes[0]
+		},
+
 	]);
-	const class1ObjectText = add([
-		text(classes[0].class_name, 4),
-		pos(25+3,20+3)
-	]);
-	const class1ObjectDescription = add([
-		text('Description: '+classes[0].description, 4),
-		pos(25+3, 25+3),
-	]);
-	
-	const class2Object = add([
+
+	const class2Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 38),
-		color(239/255,170/255,196/255),
-		mouseClick(() => {
-			go("main");
-		})
+		color(239 / 255, 170 / 255, 196 / 255),
+		"button",
+		button(),
+		{
+			class: classes[1]
+		}
 	]);
-	const class2ObjectText = add([
-		text(classes[1].class_name, 4),
-		pos(25+3, 38+3),
-	]);
-	const class2ObjectDescription = add([
-		text('Description: '+classes[1].description, 4),
-		pos(25+3, 43+3),
-	]);
-	
-	const class3Object = add([
+
+
+	const class3Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 56),
-		color(239/255,170/255,196/255),
-		mouseClick(() => {
-			go("main");
-		})
+		color(239 / 255, 170 / 255, 196 / 255),
+		"button",
+		button(),
+		{
+			class: classes[2]
+		}
 	]);
-	const class3ObjectText = add([
-		text(classes[2].class_name, 4),
-		pos(25+3, 56+3),
-	]);
-	const class3ObjectDescription = add([
-		text('Description: '+classes[2].description, 4),
-		pos(25+3, 61+3),
-	]);
-	
-	const class4Object = add([
+
+	const class4Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 74),
-		color(239/255,170/255,196/255),
-		mouseClick(() => {
-			go("main");
-		})
-	]);
-	const class4ObjectText = add([
-		text(classes[3].class_name, 4),
-		pos(25+3, 74+3),
-	]);
-	const class4ObjectDescription = add([
-		text('Description: '+classes[3].description, 4),
-		pos(25+3, 79+3),
+		color(239 / 255, 170 / 255, 196 / 255),
+		"button",
+		button(),
+		{
+			class: classes[3]
+		}
 	]);
 
-	
+
 });
 
 
 
-scene("main", () => {
+scene("main", (username) => {
 
 	layers([
 		"bg",
 		"obj",
 		"ui",
 	], "obj");
-
-	// add a text
-	//add([
-	//	text("Boomberman", 10),
-	//	pos(10, 5)
-	//	pos(10, 5)
-	//]);
 
 
 	const level =
@@ -218,15 +241,7 @@ scene("main", () => {
 			"= = = = = =",
 			"===========",
 		];
-	console.log(level[1][1]);
-	k.recv("ADD_PLAYER", (data) => {
-		console.log("Player " + data.name + " joined! :)")
-	});
 
-
-	k.recv("REMOVE_PLAYER", (data) => {
-		console.log("Player " + data.name + " left.")
-	});
 
 
 	const map = addLevel(level, {
@@ -262,7 +277,7 @@ scene("main", () => {
 
 	});
 	const userText = add([
-		text("player1", 2),
+		text(username, 2),
 		pos(4, 4),
 	]);
 
