@@ -6,7 +6,7 @@ const k = kaboom({
 	scale: 5,
 	clearColor: [0, 0, 0, 1]
 });
-
+var socket = null;
 
 /*
 var ws = new WebSocket("ws://localhost:3000/");
@@ -57,6 +57,8 @@ async function postData(url, data) {
 }
 
 
+
+
 // define a scene
 scene("login", () => {
 	var username = "";
@@ -69,12 +71,12 @@ scene("login", () => {
 	const ErrorMessage = add([
 		text("", 4),
 		pos(20, 80),
-		color(255/255,0,0)
+		color(255 / 255, 0, 0)
 	]);
 
 	const userText = add([
 		text(username, 6),
-		color(239/255,170/255,196/255),
+		color(239 / 255, 170 / 255, 196 / 255),
 		pos(20, 30),
 
 		charInput((ch) => {
@@ -86,55 +88,77 @@ scene("login", () => {
 			username = username.slice(0, -1);
 			userText.text = username;
 		}),
-		
+
 		keyPress("enter", () => {
-			let response = postData(SERVER_ADDRESS+'/login',{UID: username});
-			response.then(function(result) {
-				if(result.status == 1){
+			let response = postData(SERVER_ADDRESS + '/login', { UID: username });
+			response.then(function (result) {
+				if (result.status == 1) {
 					ErrorMessage.text = "This username is already taken";
 				}
-				else if(result.status == 0){
-					go("menu",username,result.classes);
+				else if (result.status == 0) {
+					go("menu", username, result.classes);
 				}
 			})
-			
-				
+
+
 		})
-	]);	
+	]);
 });
 
-scene("menu", (username,classes) => {
+scene("menu", (username, classes) => {
 	const helloUser = add([
-		text("Witaj " + username +". Wybierz klase:", 6),
+		text("Witaj " + username + ". Wybierz klase:", 6),
 		pos(5, 5),
 	]);
 
+	function socketInit(button) {
+		var connectionOptions = {
+			"force new connection": true,
+			"reconnectionAttempts": "Infinity",
+			"timeout": 10000,
+			"transports": ["websocket"]
+		};
+	
+		socket = io.connect('http://localhost:3000', connectionOptions);
+		socket.on('connect', () => {
+			console.log("Connected as " + username + " (CLASS_ID: " + button.class.class_id + ")")
+			socket.emit('login', { UID: username, class_id: button.class.class_id });
+			socket.on('loggedIn', (resp) => {
+				console.log(resp.status);
+				console.log(resp.map);
+				console.log(resp.player_xy);
+
+				go("main", username)
+			});
+		});
+	}
+
 	//degine button lifecycle
-	function button(){
-		return{
+	function button() {
+		return {
 			update() {
 				if (this.isHovered()) {
-					this.color = rgb(210/255,140/255,170/255);
+					this.color = rgb(210 / 255, 140 / 255, 170 / 255);
 					k.cursor("pointer");
 				} else {
-					this.color = rgb(239/255,170/255,196/255);
+					this.color = rgb(239 / 255, 170 / 255, 196 / 255);
 					k.cursor("default");
 				}
 			},
-			add(){
+			add() {
 				//add onClick handle
 				this.clicks(() => {
-					go("main")
+					socketInit(this)
 				});
 				//add class name
 				k.add([
 					text(this.class.class_name, 4),
-					pos(this.pos.x+3, this.pos.y+2)
+					pos(this.pos.x + 3, this.pos.y + 2)
 				]);
 				//add class description
 				k.add([
-					text('Description: '+this.class.description, 4),
-					pos(this.pos.x+3, this.pos.y+7),
+					text('Description: ' + this.class.description, 4),
+					pos(this.pos.x + 3, this.pos.y + 7),
 				]);
 			}
 		}
@@ -143,7 +167,7 @@ scene("menu", (username,classes) => {
 		// width, height
 		rect(200, 13),
 		pos(25, 20),
-		color(239/255,170/255,196/255),
+		color(239 / 255, 170 / 255, 196 / 255),
 		"button",
 		button(),
 		{
@@ -156,7 +180,7 @@ scene("menu", (username,classes) => {
 		// width, height
 		rect(200, 13),
 		pos(25, 38),
-		color(239/255,170/255,196/255),
+		color(239 / 255, 170 / 255, 196 / 255),
 		"button",
 		button(),
 		{
@@ -164,12 +188,12 @@ scene("menu", (username,classes) => {
 		}
 	]);
 
-	
+
 	const class3Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 56),
-		color(239/255,170/255,196/255),
+		color(239 / 255, 170 / 255, 196 / 255),
 		"button",
 		button(),
 		{
@@ -181,7 +205,7 @@ scene("menu", (username,classes) => {
 		// width, height
 		rect(200, 13),
 		pos(25, 74),
-		color(239/255,170/255,196/255),
+		color(239 / 255, 170 / 255, 196 / 255),
 		"button",
 		button(),
 		{
@@ -189,12 +213,12 @@ scene("menu", (username,classes) => {
 		}
 	]);
 
-	
+
 });
 
 
 
-scene("main", () => {
+scene("main", (username) => {
 
 	layers([
 		"bg",
@@ -217,15 +241,7 @@ scene("main", () => {
 			"= = = = = =",
 			"===========",
 		];
-	console.log(level[1][1]);
-	k.recv("ADD_PLAYER", (data) => {
-		console.log("Player " + data.name + " joined! :)")
-	});
 
-
-	k.recv("REMOVE_PLAYER", (data) => {
-		console.log("Player " + data.name + " left.")
-	});
 
 
 	const map = addLevel(level, {
@@ -261,7 +277,7 @@ scene("main", () => {
 
 	});
 	const userText = add([
-		text("player1", 2),
+		text(username, 2),
 		pos(4, 4),
 	]);
 
