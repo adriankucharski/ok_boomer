@@ -4,8 +4,7 @@ const k = kaboom({
 	fullscreen: true,
 	debug: true,
 	scale: 5,
-	clearColor: [0, 0, 0, 1],
-	connect: "ws://localhost:8000/",
+	clearColor: [0, 0, 0, 1]
 });
 
 
@@ -36,7 +35,7 @@ loadSprite("border", "https://kaboomjs.com/pub/examples/img/steel.png")
 loadSprite("bomb", "https://i.imgur.com/4GV5ZUa.png")
 loadSprite("fire", "https://i.imgur.com/LhiUi9O.png")
 
-var SERVER_ADDRESS = 'http://localhost:8000';
+var SERVER_ADDRESS = 'http://localhost:3000';
 
 async function postData(url, data) {
 	console.log(data);
@@ -110,77 +109,84 @@ scene("menu", (username,classes) => {
 		pos(5, 5),
 	]);
 
-	const class1Object = add([
+	//degine button lifecycle
+	function button(){
+		return{
+			update() {
+				if (this.isHovered()) {
+					this.color = rgb(210/255,140/255,170/255);
+					k.cursor("pointer");
+				} else {
+					this.color = rgb(239/255,170/255,196/255);
+					k.cursor("default");
+				}
+			},
+			add(){
+				//add onClick handle
+				this.clicks(() => {
+					go("main")
+				});
+				//add class name
+				k.add([
+					text(this.class.class_name, 4),
+					pos(this.pos.x+3, this.pos.y+2)
+				]);
+				//add class description
+				k.add([
+					text('Description: '+this.class.description, 4),
+					pos(this.pos.x+3, this.pos.y+7),
+				]);
+			}
+		}
+	}
+	const class1Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 20),
 		color(239/255,170/255,196/255),
-        mouseClick(() => {
-			
-			go("main");
-		})
+		"button",
+		button(),
+		{
+			class: classes[0]
+		},
+
 	]);
-	const class1ObjectText = add([
-		text(classes[0].class_name, 4),
-		pos(25+3,20+3)
-	]);
-	const class1ObjectDescription = add([
-		text('Description: '+classes[0].description, 4),
-		pos(25+3, 25+3),
-	]);
-	
-	const class2Object = add([
+
+	const class2Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 38),
 		color(239/255,170/255,196/255),
-		mouseClick(() => {
-			go("main");
-		})
+		"button",
+		button(),
+		{
+			class: classes[1]
+		}
 	]);
-	const class2ObjectText = add([
-		text(classes[1].class_name, 4),
-		pos(25+3, 38+3),
-	]);
-	const class2ObjectDescription = add([
-		text('Description: '+classes[1].description, 4),
-		pos(25+3, 43+3),
-	]);
+
 	
-	const class3Object = add([
+	const class3Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 56),
 		color(239/255,170/255,196/255),
-		mouseClick(() => {
-			go("main");
-		})
+		"button",
+		button(),
+		{
+			class: classes[2]
+		}
 	]);
-	const class3ObjectText = add([
-		text(classes[2].class_name, 4),
-		pos(25+3, 56+3),
-	]);
-	const class3ObjectDescription = add([
-		text('Description: '+classes[2].description, 4),
-		pos(25+3, 61+3),
-	]);
-	
-	const class4Object = add([
+
+	const class4Button = add([
 		// width, height
 		rect(200, 13),
 		pos(25, 74),
 		color(239/255,170/255,196/255),
-		mouseClick(() => {
-			go("main");
-		})
-	]);
-	const class4ObjectText = add([
-		text(classes[3].class_name, 4),
-		pos(25+3, 74+3),
-	]);
-	const class4ObjectDescription = add([
-		text('Description: '+classes[3].description, 4),
-		pos(25+3, 79+3),
+		"button",
+		button(),
+		{
+			class: classes[3]
+		}
 	]);
 
 	
@@ -195,13 +201,6 @@ scene("main", () => {
 		"obj",
 		"ui",
 	], "obj");
-
-	// add a text
-	//add([
-	//	text("Boomberman", 10),
-	//	pos(10, 5)
-	//	pos(10, 5)
-	//]);
 
 
 	const level =
