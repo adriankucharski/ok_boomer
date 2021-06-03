@@ -135,15 +135,15 @@ scene("menu", (username, classes) => {
 
 	//degine button lifecycle
 	function button() {
+
 		return {
 			update() {
 				if (this.isHovered()) {
 					this.color = rgb(210 / 255, 140 / 255, 170 / 255);
-					k.cursor("pointer");
 				} else {
 					this.color = rgb(239 / 255, 170 / 255, 196 / 255);
-					k.cursor("default");
 				}
+				
 			},
 			add() {
 				//add onClick handle
@@ -163,60 +163,23 @@ scene("menu", (username, classes) => {
 			}
 		}
 	}
-	const class1Button = add([
-		// width, height
-		rect(200, 13),
-		pos(25, 20),
-		color(239 / 255, 170 / 255, 196 / 255),
-		"button",
-		button(),
-		{
-			class: classes[0]
-		},
 
-	]);
-
-	const class2Button = add([
-		// width, height
-		rect(200, 13),
-		pos(25, 38),
-		color(239 / 255, 170 / 255, 196 / 255),
-		"button",
-		button(),
-		{
-			class: classes[1]
-		}
-	]);
-
-
-	const class3Button = add([
-		// width, height
-		rect(200, 13),
-		pos(25, 56),
-		color(239 / 255, 170 / 255, 196 / 255),
-		"button",
-		button(),
-		{
-			class: classes[2]
-		}
-	]);
-
-	const class4Button = add([
-		// width, height
-		rect(200, 13),
-		pos(25, 74),
-		color(239 / 255, 170 / 255, 196 / 255),
-		"button",
-		button(),
-		{
-			class: classes[3]
-		}
-	]);
-
-
+	//foreach in classes, create button
+	for(let i = 0; i < classes.length; i++){
+		add([
+			rect(200, 13),
+			pos(25, 20 + (18 * i) ),
+			color(239 / 255, 170 / 255, 196 / 255),
+			"button",
+			button(),
+			{
+				class: classes[i]
+			},
+	
+		]);
+	}
+	
 });
-
-
 
 scene("main", (username) => {
 
