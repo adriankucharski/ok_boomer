@@ -124,11 +124,8 @@ scene("menu", (username, classes) => {
 			console.log("Connected as " + username + " (CLASS_ID: " + button.class.class_id + ")")
 			socket.emit('login', { UID: username, class_id: button.class.class_id });
 			socket.on('loggedIn', (resp) => {
-				console.log(resp.status);
-				console.log(resp.map);
-				console.log(resp.player_xy);
 
-				go("main", username)
+				go("main", resp, username)
 			});
 		});
 	}
@@ -181,57 +178,27 @@ scene("menu", (username, classes) => {
 	
 });
 
-scene("main", (username) => {
-
+scene("main", (resp, username) => {
+	console.log(resp)
 	layers([
 		"bg",
 		"obj",
 		"ui",
 	], "obj");
-
-
-	const level =
-		[
-			"===========",
-			"= = = = = =",
-			"=         =",
-			"= = = = = =",
-			"=         =",
-			"= = = = = =",
-			"=         =",
-			"= = = = = =",
-			"=        p=",
-			"= = = = = =",
-			"===========",
-		];
-
+	const level = resp.map.map(e => e.join(''))
 
 
 	const map = addLevel(level, {
 		width: 11,
 		height: 11,
 		pos: vec2(0, 0),
-		"=": [
+		"1": [
 			sprite("border"),
 			solid(),
 
 
 		],
-		"p": [
-			sprite("player"),
-			"player",
 
-
-			//body(),
-			//layer("ui"),
-			{
-				speed: 50,
-				range: 5,
-				health: 10,
-				protection: false,
-			}
-
-		],
 		"b": [
 			sprite("bomb"),
 			solid(),
@@ -239,14 +206,32 @@ scene("main", (username) => {
 		]
 
 	});
-	const userText = add([
-		text(username, 2),
-		pos(4, 4),
+
+	const player = add([
+		pos(resp.player_xy[0] * 11, resp.player_xy[1] * 11),
+		sprite("player"),
+		"player",
+
+		{
+			speed: 50,
+			range: 5,
+			health: 10,
+			protection: false,
+			username: username,
+			playerText: add([
+				text(username, 2),
+			]),
+			update(){
+				stats.text = `Health: ${this.health}`;
+				this.playerText.pos = vec2(this.pos.x - (this.playerText.width/2) + 5, this.pos.y-2)
+				this.resolve();
+			}
+		},
+
 	]);
 
 
 
-	const player = get("player")[0];
 	keyDown("left", () => {
 		player.move(-player.speed, 0);
 	});
@@ -333,7 +318,7 @@ scene("main", (username) => {
 
 				]);
 				wait(1, () => {
-					destroy(p);
+					destroy(p); 
 
 				});
 
@@ -383,14 +368,6 @@ scene("main", (username) => {
 		text(`Health: ${player.health}`, 3),
 		pos(150, 4),
 	]);
-	player.action(() => {
-		stats.text = `Health: ${player.health}`;
-		player.resolve();
-		userText.pos = vec2(player.pos.x, player.pos.y - 2)
-
-	});
-
-
 
 });
 
