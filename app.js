@@ -77,6 +77,7 @@ const BOMBS = [];
 const BOMB_TIMER = 2000;
 const PLAYERS_NUMBER = 1;
 let PLAYERS = 0;
+let MAP_TEMP = JSON.parse(JSON.stringify(MAP)); // clone trick
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
@@ -130,7 +131,7 @@ function appendPlayer(username, class_id, users = USERS, map = MAP){
   users[username]['player_xy'] = positions[0];
 }
 
-function movePlayer(username, direction, users = USERS, map = MAP){
+function movePlayer(username, direction, users = USERS, map = MAP_TEMP){
   const dir = {'left': [-1, 0], 'right':[1, 0], 'up': [0, -1], 'back': [0, 1]};
   const vecxy = dir[direction];
   const userxy = users[username]['player_xy'];
@@ -181,6 +182,7 @@ loginRouter.post('/login', function(req, res) {
 loginRouter.post('/reset', function(req, res){
   USERS = {};
   PLAYERS = 0;
+  MAP_TEMP = JSON.parse(JSON.stringify(MAP));
   res.json({'status': 0});
 });
 
@@ -271,7 +273,15 @@ io.on('connection', (socket) => {
   
 });
 
+function bombExplode(xy, radius){
+  let [x, y] = xy;
+  
 
+  for(let i = -radius; i <= radius; ++i){
+    let nx = x + i;
+    //if(x > 0 && x <  )
+  }
+}
 
 
 module.exports = app;
