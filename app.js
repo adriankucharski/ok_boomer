@@ -77,7 +77,7 @@ const WIDTH = MAP[0].length;
 const HEIGHT = MAP.length;
 const BOMBS = [];
 const BOMB_TIMER = 2000;
-const PLAYERS_NUMBER = 1;
+const PLAYERS_NUMBER = 4;
 const IMMORTAL_TIME = 3000;
 let PLAYERS = 0;
 let MAP_TEMP = JSON.parse(JSON.stringify(MAP)); // clone trick
@@ -132,9 +132,19 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
   users[username]['bomb_amount'] = getStatOfClass(class_id, 'bomb_amount');
   users[username]['bomb_planted'] = 0;
   users[username]['player_xy'] = positions[0];
+  users[username]['canMove'] = true;
+  users[username]['speed'] = 200; //[0 - 1000]
 }
 
 function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
+  if(!users[username]['canMove'])
+    return null;
+  
+  users[username]['canMove'] = false;
+  setTimeout(() => {
+    users[username]['canMove'] = true;
+  }, (1000 - users[username]['speed']) /4);
+
   const dir = { 'left': [-1, 0], 'right': [1, 0], 'up': [0, -1], 'back': [0, 1] };
   const vecxy = dir[direction];
   const userxy = users[username]['player_xy'];
@@ -149,6 +159,8 @@ function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
     map[finxy[1]][finxy[0]] === 0        // Check map
   ) {
     users[username]['player_xy'] = finxy;
+
+
     return finxy;
   }
 
