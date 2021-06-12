@@ -282,6 +282,7 @@ io.on('connection', (socket) => {
 
     // Ustaw czas do wybuchu bomby
     setTimeout(() => {
+      BOMBS.pop(xy);
       let radius = USERS[socket.username]['bomb_range'];
       let [removed_blocks, player_killed] = bombExplode(xy, radius);
 
