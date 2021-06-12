@@ -34,6 +34,7 @@ loadSprite("player", "https://kaboomjs.com/pub/examples/img/guy.png")
 loadSprite("border", "https://kaboomjs.com/pub/examples/img/steel.png")
 loadSprite("bomb", "https://i.imgur.com/4GV5ZUa.png")
 loadSprite("fire", "https://i.imgur.com/LhiUi9O.png")
+loadSprite("brick", "https://i.imgur.com/DUooU1n.png")
 
 var SERVER_ADDRESS = 'http://localhost:3000';
 
@@ -127,6 +128,7 @@ scene("menu", (username, classes) => {
 
 				go("main", resp, username)
 			});
+
 		});
 	}
 
@@ -186,26 +188,62 @@ scene("main", (resp, username) => {
 		"ui",
 	], "obj");
 	const level = resp.map.map(e => e.join(''))
+	socket.on('place bomb', (resp) => {
+		console.log("BOMB !" + resp)
+		const bomb = add([
+			sprite("bomb"),
+			layer("bg"),
+			"bomb_"+resp.bomb_xy.x+"_"+resp.bomb_xy.y,
+			pos(resp.bomb_xy.x*11, resp.bomb_xy.y*11),
+		]);
+		
+	});
+	socket.on('place explode', (resp) =>{
+		//
+		let bomb = get("bomb_"+resp.bomb_xy.x+"_"+resp.bomb_xy.y)[0];
+		destroy(bomb);
+	});
+	socket.on('move player', (resp) => {
+		console.log("MOVE" + JSON.stringify(resp))
+		player.pos.x = resp.player_xy.x*11;
+		player.pos.y = resp.player_xy.y*11;
+		
+		
+	});
 
+	socket.on('remove block', (resp) => {
+		console.log(resp);
+		resp.blocks.forEach( (b) => {
+			every("zniszczalny", (obj) => {
+				//console.log(obj.pos.x/11 + " == " + b.x + " // " + obj.pos.y/11 + " == " + b.y)
+				if(obj.pos.x/11 == b.x && obj.pos.y/11 == b.y){
+					destroy(obj);
+				}
+			});
+		});
+	});
 
 	const map = addLevel(level, {
 		width: 11,
 		height: 11,
 		pos: vec2(0, 0),
-		"1": [
+		"2": [
 			sprite("border"),
 			solid(),
+			"zniszczalny"
 
 
 		],
-
-		"b": [
-			sprite("bomb"),
+		"1": [
+			sprite("brick"),
 			solid(),
-			area(vec2(10), vec2(10)),
-		]
+			
+
+		],
 
 	});
+
+
 
 	const player = add([
 		pos(resp.player_xy[0] * 11, resp.player_xy[1] * 11),
@@ -233,119 +271,24 @@ scene("main", (resp, username) => {
 
 
 	keyDown("left", () => {
-		player.move(-player.speed, 0);
+		socket.emit('request_move', {direction: 'left'});
+
 	});
 
 	keyDown("right", () => {
-		player.move(player.speed, 0);
+		socket.emit('request_move', {direction: 'right'});
+		
 	});
 
 	keyDown("up", () => {
-		player.move(0, -player.speed);
+		socket.emit('request_move', {direction: 'up'});
 	});
 
 	keyDown("down", () => {
-		player.move(0, player.speed);
+		socket.emit('request_move', {direction: 'back'});
 	});
 	keyPress("space", () => {
-		const newx = Math.round((player.pos.x) / 11) * 11;
-		const newy = Math.round((player.pos.y) / 11) * 11;
-		const bomb = add([
-			sprite("bomb"),
-			layer("bg"),
-
-			pos(newx, newy),
-			console.log(player.pos),
-
-
-		]);
-
-		wait(3, () => {
-			destroy(bomb);
-			//to right
-
-			for (i = 1; i <= player.range; i++) {
-				//if border
-				if (level[newy / 11][(newx + i * 11) / 11] === '=') {
-					break;
-				}
-				const p = add([
-					sprite("fire"),
-					"fire",
-
-					pos(newx + i * 11, newy)
-					//pos( player.gridPos.add(1,0))
-
-				]);
-				wait(1, () => {
-					destroy(p);
-
-				});
-
-			}
-			//to left
-			for (i = 0; i <= player.range; i++) {
-				//if border
-				if (level[newy / 11][(newx - i * 11) / 11] === '=') {
-					break;
-				}
-				const p = add([
-					sprite("fire"),
-					"fire",
-
-					pos(newx - i * 11, newy)
-					//pos( player.gridPos.add(1,0))
-
-				]);
-				wait(1, () => {
-					destroy(p);
-
-				});
-
-			}
-			//to top
-			for (i = 0; i <= player.range; i++) {
-				//if border
-				if (level[(newy - i * 11) / 11][newx / 11] === '=') {
-					break;
-				}
-				const p = add([
-					sprite("fire"),
-					"fire",
-
-					pos(newx, newy - i * 11)
-					//pos( player.gridPos.add(1,0))
-
-				]);
-				wait(1, () => {
-					destroy(p); 
-
-				});
-
-			}
-			//to down
-			for (i = 0; i <= player.range; i++) {
-				//if border
-				if (level[(newy + i * 11) / 11][newx / 11] === '=') {
-					break;
-				}
-				const p = add([
-					sprite("fire"),
-					"fire",
-
-					pos(newx, newy + i * 11)
-					//pos( player.gridPos.add(1,0))
-
-				]);
-				wait(1, () => {
-					destroy(p);
-
-				});
-
-			}
-
-		});
-
+		socket.emit('request place bomb');
 	});
 	player.collides("fire", (a) => {
 		if (!player.protection) {
