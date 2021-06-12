@@ -112,7 +112,7 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
   users[username]['player_xy'] = [0, 0];
 
   let height = map.length;
-  let width = map[0].length;
+  let width = map[0].length - 2;
 
   let positions = [[1, 1], [1, width - 2], [height - 2, 1], [height - 2, width - 2]];
 
@@ -154,13 +154,11 @@ function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
   let height = map.length;
   let width = map[0].length;
 
-  console.log("MAP:" + finxy[1] + " " + finxy[0] );
   if (finxy[0] > 0 && finxy[0] < width &&  // Check x
     finxy[1] > 0 && finxy[1] < height && // Check y
     map[finxy[1]][finxy[0]] == 0        // Check map
   ) {
     users[username]['player_xy'] = finxy;
-
 
     return finxy;
   }
@@ -249,16 +247,16 @@ io.on('connection', (socket) => {
     });
 
     if (PLAYERS == PLAYERS_NUMBER) {
-
       io.sockets.emit('start game', {
-
+        MAP,
+        USERS,
+        
       });
     }
   });
 
   // Ad.: 1.c. poruszanie się gracza
   socket.on('request_move', (direction) => {
-    console.log(direction['direction']);
     let xy = movePlayer(socket.username, direction['direction']);
     if (xy !== null)
       io.sockets.emit('move player', { 'UID': socket.username, 'player_xy': { 'x': xy[0], 'y': xy[1] } });
