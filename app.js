@@ -276,6 +276,8 @@ io.on('connection', (socket) => {
     if (index != -1)
       return;
 
+    USERS[socket.username]['bomb_planted']++; 
+
     // Gracz może postawić bombę 
     BOMBS.push(xy);
     io.sockets.emit('place bomb', { 'bomb_xy': { 'x': xy[0], 'y': xy[1] } });
@@ -283,6 +285,7 @@ io.on('connection', (socket) => {
     // Ustaw czas do wybuchu bomby
     setTimeout(() => {
       BOMBS.pop(xy);
+      USERS[socket.username]['bomb_planted']--;
       let radius = USERS[socket.username]['bomb_range'];
       let [removed_blocks, player_killed] = bombExplode(xy, radius);
 
