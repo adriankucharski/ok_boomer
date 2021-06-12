@@ -154,9 +154,10 @@ function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
   let height = map.length;
   let width = map[0].length;
 
+  console.log("MAP:" + finxy[1] + " " + finxy[0] );
   if (finxy[0] > 0 && finxy[0] < width &&  // Check x
     finxy[1] > 0 && finxy[1] < height && // Check y
-    map[finxy[1]][finxy[0]] === 0        // Check map
+    map[finxy[1]][finxy[0]] == 0        // Check map
   ) {
     users[username]['player_xy'] = finxy;
 
@@ -331,12 +332,12 @@ function bombExplode(xy, radius) {
     let nx = x + i;
     checkColisionWithPlayer(nx, y, player_killed);
     if (nx > 0 && nx < WIDTH) {
-      if (MAP[y][nx] === 2) {
+      if (MAP_TEMP[y][nx] === 2) {       
         removed_blocks.push({ "x": nx, "y": y });
-        MAP[y][nx] = 0;
+        MAP_TEMP[y][nx] = 0;
         break;
       }
-      if (MAP[y][nx] === 1) {
+      if (MAP_TEMP[y][nx] === 1) {
         break;
       }
     }
@@ -347,12 +348,12 @@ function bombExplode(xy, radius) {
     let nx = x + i;
     checkColisionWithPlayer(nx, y, player_killed);
     if (nx > 0 && nx < WIDTH) {
-      if (MAP[y][nx] === 2) {
+      if (MAP_TEMP[y][nx] === 2) {
         removed_blocks.push({ "x": nx, "y": y });
-        MAP[y][nx] = 0;
+        MAP_TEMP[y][nx] = 0;
         break;
       }
-      if (MAP[y][nx] === 1) {
+      if (MAP_TEMP[y][nx] === 1) {
         break;
       }
     }
@@ -363,12 +364,12 @@ function bombExplode(xy, radius) {
     let ny = y + i;
     checkColisionWithPlayer(x, ny, player_killed);
     if (ny > 0 && ny < HEIGHT) {
-      if (MAP[ny][x] === 2) {
+      if (MAP_TEMP[ny][x] === 2) {
         removed_blocks.push({ "x": x, "y": ny });
-        MAP[ny][x] = 0;
+        MAP_TEMP[ny][x] = 0;
         break;
       }
-      if (MAP[ny][x] === 1) {
+      if (MAP_TEMP[ny][x] === 1) {
         break;
       }
     }
@@ -379,12 +380,12 @@ function bombExplode(xy, radius) {
     let ny = y + i;
     checkColisionWithPlayer(x, ny, player_killed);
     if (ny > 0 && ny < HEIGHT) {
-      if (MAP[ny][x] === 2) {
+      if (MAP_TEMP[ny][x] === 2) {
         removed_blocks.push({ "x": x, "y": ny });
-        MAP[ny][x] = 0;
+        MAP_TEMP[ny][x] = 0;
         break;
       }
-      if (MAP[ny][x] === 1) {
+      if (MAP_TEMP[ny][x] === 1) {
         break;
       }
     }
