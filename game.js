@@ -222,8 +222,10 @@ scene("main", (resp, username) => {
 	});
 	socket.on('move player', (resp) => {
 		//console.log("MOVE" + JSON.stringify(resp))
-		player.pos.x = resp.player_xy.x*11;
-		player.pos.y = resp.player_xy.y*11;
+		let p = get("player_" + resp.UID)[0];
+
+		p.pos.x = resp.player_xy.x*11;
+		p.pos.y = resp.player_xy.y*11;
 		
 		
 	});
