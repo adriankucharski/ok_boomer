@@ -105,7 +105,22 @@ scene("login", () => {
 		})
 	]);
 });
-
+scene("waiting", () => {
+	var i = 0;
+	const waitText = add([
+		text("Czekam na graczy"),
+		pos(20, 20)
+	]);
+	loop(0.2, () => {
+		i++;
+		if(i > 3) i = 0;
+		let t = "Czekam na graczy";
+		for(let j=0; j<i; j++){
+			t += '.';
+		}
+		waitText.text = t;
+	});
+});
 scene("menu", (username, classes) => {
 	const helloUser = add([
 		text("Witaj " + username + ". Wybierz klase:", 6),
@@ -125,8 +140,10 @@ scene("menu", (username, classes) => {
 			console.log("Connected as " + username + " (CLASS_ID: " + button.class.class_id + ")")
 			socket.emit('login', { UID: username, class_id: button.class.class_id });
 			socket.on('loggedIn', (resp) => {
-
-				go("main", resp, username)
+				go('waiting');
+			});
+			socket.on('start game', (resp) => {
+				go("main", resp, username);
 			});
 
 		});
@@ -187,7 +204,7 @@ scene("main", (resp, username) => {
 		"obj",
 		"ui",
 	], "obj");
-	const level = resp.map.map(e => e.join(''))
+	const level = resp.MAP.map(e => e.join(''))
 	socket.on('place bomb', (resp) => {
 		console.log("BOMB !" + resp)
 		const bomb = add([
@@ -204,7 +221,7 @@ scene("main", (resp, username) => {
 		destroy(bomb);
 	});
 	socket.on('move player', (resp) => {
-		console.log("MOVE" + JSON.stringify(resp))
+		//console.log("MOVE" + JSON.stringify(resp))
 		player.pos.x = resp.player_xy.x*11;
 		player.pos.y = resp.player_xy.y*11;
 		
@@ -243,70 +260,90 @@ scene("main", (resp, username) => {
 
 	});
 
+	for (const u in resp.USERS) {
+		let usr = resp.USERS[u];
 
-
-	const player = add([
-		pos(resp.player_xy[0] * 11, resp.player_xy[1] * 11),
-		sprite("player"),
-		"player",
-
-		{
-			speed: 50,
-			range: 5,
-			health: 10,
-			protection: false,
-			username: username,
-			playerText: add([
-				text(username, 2),
-			]),
-			update(){
-				stats.text = `Health: ${this.health}`;
-				this.playerText.pos = vec2(this.pos.x - (this.playerText.width/2) + 5, this.pos.y-2)
-				this.resolve();
+		console.log(usr);
+		add([
+			pos(usr.player_xy[0] * 11, usr.player_xy[1] * 11),
+			sprite("player"),
+			"player_"+u,
+			{
+				speed: usr.speed,
+				range: usr.bomb_range,
+				health: usr.live,
+				protection: usr.immortal,
+				username: u,
+				canMove: true,
+				playerText: add([
+					text(u, 2),
+				]),
+				update(){
+					//stats.text = `Health: ${this.health}`;
+					this.playerText.pos = vec2(this.pos.x - (this.playerText.width/2) + 5, this.pos.y-2)
+					this.resolve();
+				}
 			}
-		},
+		])
+	  }
 
-	]);
-
+	const player = get("player_" + username)[0];
+	console.log("player_"+username +":"+ player);
 
 
 	keyDown("left", () => {
-		socket.emit('request_move', {direction: 'left'});
 
-	});
+			socket.emit('request_move', {direction: 'left'});
 
-	keyDown("right", () => {
-		socket.emit('request_move', {direction: 'right'});
 		
 	});
 
+	keyDown("right", () => {
+
+			socket.emit('request_move', {direction: 'right'});
+
+	});
+
 	keyDown("up", () => {
-		socket.emit('request_move', {direction: 'up'});
+		if(player.canMove){
+			player.canMove = false;
+			socket.emit('request_move', {direction: 'up'});
+			wait(0.2, () => {
+				player.canMove = true;
+			});
+		}
 	});
 
 	keyDown("down", () => {
-		socket.emit('request_move', {direction: 'back'});
-	});
-	keyPress("space", () => {
-		socket.emit('request place bomb');
-	});
-	player.collides("fire", (a) => {
-		if (!player.protection) {
-			player.protection = true;
-			player.health--;
-			camShake(12);
-			if (player.health < 1) {
-				destroy(player);
-				destroy(userText);
-			}
-
-			wait(1, () => {
-				player.protection = false;
+		if(player.canMove){
+			player.canMove = false;
+			socket.emit('request_move', {direction: 'back'});
+			wait(0.2, () => {
+				player.canMove = true;
 			});
-
 		}
-
 	});
+	keyPress("space", () => {	
+		socket.emit('request place bomb');		
+	});
+	// player.collides("fire", (a) => {
+	// 	if (!player.protection) {
+	// 		player.protection = true;
+	// 		player.health--;
+	// 		camShake(12);
+	// 		if (player.health < 1) {
+	// 			destroy(player);
+	// 			destroy(userText);
+	// 		}
+
+	// 		wait(1, () => {
+	// 			player.protection = false;
+	// 		});
+
+	// 	}
+
+	// });
+
 	const stats = add([
 		text(`Health: ${player.health}`, 3),
 		pos(150, 4),
