@@ -77,8 +77,17 @@ const WIDTH = MAP[0].length;
 const HEIGHT = MAP.length;
 const BOMBS = [];
 const BOMB_TIMER = 2000;
+
+const BASE_MOVE_TIME = 500;
+const SPEED_MULTIPLER = 50;
+const MAX_SPEED_STAT = 5;
+
 const PLAYERS_NUMBER = 4;
 const IMMORTAL_TIME = 3000;
+
+const BONUSES = [];
+const BONUS_PROB = 0.5;
+const BONUSES = ['speed', 'bomb_range', 'bomb_amount'];
 let PLAYERS = 0;
 let MAP_TEMP = JSON.parse(JSON.stringify(MAP)); // clone trick
 
@@ -256,10 +265,37 @@ io.on('connection', (socket) => {
   });
 
   // Ad.: 1.c. poruszanie się gracza
+  player_move_lock = false;
   socket.on('request_move', (direction) => {
+    if(player_move_lock)
+      return;
+    
+    // Spróbuj ruszyć graczem w danym kierunku
     let xy = movePlayer(socket.username, direction['direction']);
-    if (xy !== null)
+    if (xy !== null){
+      // Zablokuj ruch gracza na kilkaset milisekund
+      player_move_lock = true;
+      setTimeout(()=> player_move_lock = false, BASE_MOVE_TIME - (SPEED_MULTIPLER * USERS[socket.username]['speed']));
+
+      // Sprawdź czy nie było kolizji z bonusem
+      let index = bonusColision(xy, BONUSES);
+      if(index !== -1){
+        // Gracz wszedł na bonus
+        // Zwiększ statystykę 
+        USERS[socket.username][BONUSES[index]['bonus_type']]++;
+        if(USERS[socket.username]['speed'] > MAX_SPEED_STAT)
+          USERS[socket.username]['speed']--;
+        
+        // Powiadom graczy, że bonus zniknął
+        io.sockets.emit("remove bonus", {'bonus_xy': BONUSES[index]['bonus_xy']});
+
+        // Usuń bonus z tablicy
+        BONUSES.splice(index, 1);
+      }
+
+      // Wyślij informację o tym, że gracz się ruszył
       io.sockets.emit('move player', { 'UID': socket.username, 'player_xy': { 'x': xy[0], 'y': xy[1] } });
+    }
   });
 
   // Ad.: 1.e. stawianie i wybuch bomb
@@ -282,6 +318,7 @@ io.on('connection', (socket) => {
 
     // Ustaw czas do wybuchu bomby
     setTimeout(() => {
+      // Usuń bombę z tablicy
       BOMBS.pop(xy);
       USERS[socket.username]['bomb_planted']--;
       let radius = USERS[socket.username]['bomb_range'];
@@ -291,8 +328,17 @@ io.on('connection', (socket) => {
       io.sockets.emit('place explode', { 'bomb_xy': { 'x': xy[0], 'y': xy[1] }, 'radius': radius });
 
       // Jeżeli bomba usunęła jakieś bloki to powiadom graczy
-      if (removed_blocks.length > 0)
+      if (removed_blocks.length > 0){
         io.sockets.emit("remove block", { 'blocks': removed_blocks });
+
+        // Dodatkowo rozstaw bonusy na tych blokach z pewnym prawdopodobieństwem
+        const bonuses = generateBonuses(removed_blocks, BONUS_PROB);
+        for(let i = 0; i < bonuses.length; ++i){
+          BONUSES.push(bonuses[i]);
+          io.sockets.emit("place bonus", bonuses[i]);
+          console.log(bonuses[i]);
+        }
+      }
 
       // Jeżeli bomba kogoś zabiła to powiadom graczy
       for(let i = 0; i < player_killed.length; ++i)
@@ -303,10 +349,33 @@ io.on('connection', (socket) => {
 
 });
 
+
+function bonusColision(xy, bonuses = BONUSES){
+  const [x, y] = xy;
+  for(let i = 0; i < bonuses.length; ++i){
+    const [bx, by] = bonuses[i]['bonus_xy'];
+    if(x === bx && y === by)
+      return i;
+  }
+  return -1;
+}
+
+function generateBonuses(removed_blocks, probability){
+  const bonuses = [];
+
+  for (let i = 0; i < removed_blocks.length; ++i) {
+    if(Math.random() < probability){
+      bonuses.push({
+        'bonus_type': BONUSES[Math.floor(Math.random() * BONUSES.length)],
+        'bonus_xy': removed_blocks[i]
+      });
+    }
+  }
+  return bonuses;
+}
+
 function bombExplode(xy, radius) {
-
   let [x, y] = xy;
-
   let removed_blocks = [];
   let player_killed = [];
 
