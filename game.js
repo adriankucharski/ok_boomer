@@ -262,9 +262,46 @@ scene("main", (resp, username) => {
 
 	});
 
+	
+	var temp_counter = 0;
 	for (const u in resp.USERS) {
+		
 		let usr = resp.USERS[u];
-
+		//name of class by name
+		var class_name;
+		if(usr.class=='1')
+			class_name='Zwinne nogi';
+		else if(usr.class=='2')
+			class_name='Bomber';
+		else if(usr.class=='3')
+			class_name='Medyk';
+		else
+			class_name = "Rage Bomber";
+		//container
+		add([
+			rect(100, 20),
+			pos(170, 20 + (20 * temp_counter) ),
+			color(239 / 255, 170 / 255, 196 / 255),
+		]);
+		//add user
+		add([
+			text(u, 4),
+			pos(170 + 3, 20 + (20 * temp_counter) + 2),
+			"player_stats_name"+u
+		]);
+		//add class 
+		k.add([
+			text(class_name, 4),
+			pos(170 + 3, 20 + (20 * temp_counter) + 7),
+			"player_stats_class"+u
+		]);
+		//add users health
+		k.add([
+			text("Health " +usr.live, 4),
+			pos(170 + 3, 20 + (20 * temp_counter) + 12),
+			"player_stats_health"+u
+		]);
+		temp_counter++;
 		console.log(usr);
 		add([
 			pos(usr.player_xy[0] * 11, usr.player_xy[1] * 11),
@@ -288,9 +325,16 @@ scene("main", (resp, username) => {
 			}
 		])
 	  }
+	  /* przyklad metody w jaki mozna aktualizowac poszczegolne pola za pomoca tagow
+	  for (const u in resp.USERS) {
+		const baby = get("player_stats_name" + u)[0];
+		console.log("Name: "+baby.text);
+		baby.text = new_name;
+	  }
+	  */
 
 	const player = get("player_" + username)[0];
-	console.log("player_"+username +":"+ player);
+	console.log("player_"+username +":"+ player.range);
 
 
 	keyDown("left", () => {
@@ -346,10 +390,10 @@ scene("main", (resp, username) => {
 
 	// });
 
-	const stats = add([
-		text(`Health: ${player.health}`, 3),
-		pos(150, 4),
-	]);
+	//const stats = add([
+	//	text(`Health: ${player.health}`, 3),
+	//	pos(150, 4),
+	//]);
 
 });
 
