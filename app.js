@@ -77,12 +77,12 @@ const WIDTH = MAP[0].length;
 const HEIGHT = MAP.length;
 const BOMBS = [];
 const BOMB_TIMER = 2000;
-const PLAYERS_NUMBER = 1;
 
 const BASE_MOVE_TIME = 500;
 const SPEED_MULTIPLER = 50;
 const MAX_SPEED_STAT = 5;
 
+const PLAYERS_NUMBER = 4;
 const IMMORTAL_TIME = 3000;
 
 const BONUSES = [];
@@ -121,7 +121,7 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
   users[username]['player_xy'] = [0, 0];
 
   let height = map.length;
-  let width = map[0].length;
+  let width = map[0].length - 2;
 
   let positions = [[1, 1], [1, width - 2], [height - 2, 1], [height - 2, width - 2]];
 
@@ -141,9 +141,19 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
   users[username]['bomb_amount'] = getStatOfClass(class_id, 'bomb_amount');
   users[username]['bomb_planted'] = 0;
   users[username]['player_xy'] = positions[0];
+  users[username]['canMove'] = true;
+  users[username]['speed'] = 200; //[0 - 1000]
 }
 
 function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
+  if(!users[username]['canMove'])
+    return null;
+  
+  users[username]['canMove'] = false;
+  setTimeout(() => {
+    users[username]['canMove'] = true;
+  }, (1000 - users[username]['speed']) /4);
+
   const dir = { 'left': [-1, 0], 'right': [1, 0], 'up': [0, -1], 'back': [0, 1] };
   const vecxy = dir[direction];
   const userxy = users[username]['player_xy'];
@@ -155,9 +165,10 @@ function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
 
   if (finxy[0] > 0 && finxy[0] < width &&  // Check x
     finxy[1] > 0 && finxy[1] < height && // Check y
-    map[finxy[1]][finxy[0]] === 0        // Check map
+    map[finxy[1]][finxy[0]] == 0        // Check map
   ) {
     users[username]['player_xy'] = finxy;
+
     return finxy;
   }
 
@@ -245,9 +256,10 @@ io.on('connection', (socket) => {
     });
 
     if (PLAYERS == PLAYERS_NUMBER) {
-
       io.sockets.emit('start game', {
-
+        MAP,
+        USERS,
+        
       });
     }
   });
@@ -298,6 +310,8 @@ io.on('connection', (socket) => {
     if (index != -1)
       return;
 
+    USERS[socket.username]['bomb_planted']++; 
+
     // Gracz może postawić bombę 
     BOMBS.push(xy);
     io.sockets.emit('place bomb', { 'bomb_xy': { 'x': xy[0], 'y': xy[1] } });
@@ -305,8 +319,8 @@ io.on('connection', (socket) => {
     // Ustaw czas do wybuchu bomby
     setTimeout(() => {
       // Usuń bombę z tablicy
-      BOMBS.splice(findArray(BOMBS, xy), 1);
-
+      BOMBS.pop(xy);
+      USERS[socket.username]['bomb_planted']--;
       let radius = USERS[socket.username]['bomb_range'];
       let [removed_blocks, player_killed] = bombExplode(xy, radius);
 
@@ -389,12 +403,12 @@ function bombExplode(xy, radius) {
     let nx = x + i;
     checkColisionWithPlayer(nx, y, player_killed);
     if (nx > 0 && nx < WIDTH) {
-      if (MAP[y][nx] === 2) {
+      if (MAP_TEMP[y][nx] === 2) {       
         removed_blocks.push({ "x": nx, "y": y });
-        MAP[y][nx] = 0;
+        MAP_TEMP[y][nx] = 0;
         break;
       }
-      if (MAP[y][nx] === 1) {
+      if (MAP_TEMP[y][nx] === 1) {
         break;
       }
     }
@@ -405,12 +419,12 @@ function bombExplode(xy, radius) {
     let nx = x + i;
     checkColisionWithPlayer(nx, y, player_killed);
     if (nx > 0 && nx < WIDTH) {
-      if (MAP[y][nx] === 2) {
+      if (MAP_TEMP[y][nx] === 2) {
         removed_blocks.push({ "x": nx, "y": y });
-        MAP[y][nx] = 0;
+        MAP_TEMP[y][nx] = 0;
         break;
       }
-      if (MAP[y][nx] === 1) {
+      if (MAP_TEMP[y][nx] === 1) {
         break;
       }
     }
@@ -421,12 +435,12 @@ function bombExplode(xy, radius) {
     let ny = y + i;
     checkColisionWithPlayer(x, ny, player_killed);
     if (ny > 0 && ny < HEIGHT) {
-      if (MAP[ny][x] === 2) {
+      if (MAP_TEMP[ny][x] === 2) {
         removed_blocks.push({ "x": x, "y": ny });
-        MAP[ny][x] = 0;
+        MAP_TEMP[ny][x] = 0;
         break;
       }
-      if (MAP[ny][x] === 1) {
+      if (MAP_TEMP[ny][x] === 1) {
         break;
       }
     }
@@ -437,12 +451,12 @@ function bombExplode(xy, radius) {
     let ny = y + i;
     checkColisionWithPlayer(x, ny, player_killed);
     if (ny > 0 && ny < HEIGHT) {
-      if (MAP[ny][x] === 2) {
+      if (MAP_TEMP[ny][x] === 2) {
         removed_blocks.push({ "x": x, "y": ny });
-        MAP[ny][x] = 0;
+        MAP_TEMP[ny][x] = 0;
         break;
       }
-      if (MAP[ny][x] === 1) {
+      if (MAP_TEMP[ny][x] === 1) {
         break;
       }
     }
