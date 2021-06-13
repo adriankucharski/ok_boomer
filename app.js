@@ -86,8 +86,8 @@ const PLAYERS_NUMBER = 4;
 const IMMORTAL_TIME = 3000;
 
 const BONUSES = [];
-const BONUS_PROB = 0.5;
-const BONUSES = ['speed', 'bomb_range', 'bomb_amount'];
+const BONUS_PROB = 1.0;
+const BONUSES_T = ['speed', 'bomb_range', 'bomb_amount'];
 let PLAYERS = 0;
 let MAP_TEMP = JSON.parse(JSON.stringify(MAP)); // clone trick
 
@@ -353,7 +353,9 @@ io.on('connection', (socket) => {
 function bonusColision(xy, bonuses = BONUSES){
   const [x, y] = xy;
   for(let i = 0; i < bonuses.length; ++i){
-    const [bx, by] = bonuses[i]['bonus_xy'];
+    const bx = bonuses[i]['bonus_xy']['x'];
+    const by = bonuses[i]['bonus_xy']['y'];
+
     if(x === bx && y === by)
       return i;
   }
@@ -366,7 +368,7 @@ function generateBonuses(removed_blocks, probability){
   for (let i = 0; i < removed_blocks.length; ++i) {
     if(Math.random() < probability){
       bonuses.push({
-        'bonus_type': BONUSES[Math.floor(Math.random() * BONUSES.length)],
+        'bonus_type': BONUSES_T[Math.floor(Math.random() * BONUSES_T.length)],
         'bonus_xy': removed_blocks[i]
       });
     }
