@@ -1,2 +1,2 @@
 # ok_boomer
-Bomber game
+Boomber game ok
