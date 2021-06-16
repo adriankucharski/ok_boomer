@@ -16,6 +16,12 @@ const server = app.listen(PORT, function () {
 });
 const io = require('socket.io')(server, { transport: ['websocket'] });
 
+/**
+ * 1. Statystyki
+ * 2. Odłączanie gracza od sterowania po śmierci
+ * 3. Gracz odłączony -> gracz martwy 
+ */
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
  *                   Game global variables and const
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -82,8 +88,10 @@ const BASE_MOVE_TIME = 500;
 const SPEED_MULTIPLER = 50;
 const MAX_SPEED_STAT = 5;
 
-const PLAYERS_NUMBER = 4;
+const PLAYERS_NUMBER = 2;
 const IMMORTAL_TIME = 3000;
+
+const STATISTICS_TIME = 500;
 
 const BONUSES = [];
 const BONUS_PROB = 1.0;
@@ -118,8 +126,7 @@ function getStatOfClass(class_id, stat, classes = CLASESS) {
 function appendPlayer(username, class_id, users = USERS, map = MAP) {
   console.log(username);
   USERS[username]['class'] = class_id;
-  users[username]['player_xy'] = [0, 0];
-
+  
   let height = map.length;
   let width = map[0].length - 2;
 
@@ -132,28 +139,21 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
       positions.splice(index, 1);
   }
 
-
   users[username]['dead'] = false;
-  users[username]['live'] = getStatOfClass(class_id, 'live');
-  users[username]['speed'] = getStatOfClass(class_id, 'speed');
+  users[username]['canMove'] = true;
   users[username]['immortal'] = false;
-  users[username]['bomb_range'] = getStatOfClass(class_id, 'bomb_range');
-  users[username]['bomb_amount'] = getStatOfClass(class_id, 'bomb_amount');
   users[username]['bomb_planted'] = 0;
   users[username]['player_xy'] = positions[0];
-  users[username]['canMove'] = true;
-  users[username]['speed'] = 200; //[0 - 1000]
+  users[username]['live'] = getStatOfClass(class_id, 'live');
+  users[username]['speed'] = getStatOfClass(class_id, 'speed');
+  users[username]['bomb_range'] = getStatOfClass(class_id, 'bomb_range');
+  users[username]['bomb_amount'] = getStatOfClass(class_id, 'bomb_amount');
 }
 
 function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
   if(!users[username]['canMove'])
     return null;
   
-  users[username]['canMove'] = false;
-  setTimeout(() => {
-    users[username]['canMove'] = true;
-  }, (1000 - users[username]['speed']) /4);
-
   const dir = { 'left': [-1, 0], 'right': [1, 0], 'up': [0, -1], 'back': [0, 1] };
   const vecxy = dir[direction];
   const userxy = users[username]['player_xy'];
@@ -169,6 +169,11 @@ function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
   ) {
     users[username]['player_xy'] = finxy;
 
+    // Zablokuj ruch gracza na kilkaset milisekund
+    users[username]['canMove'] = false;
+    setTimeout(() => {
+      users[username]['canMove'] = true;
+    }, BASE_MOVE_TIME - (SPEED_MULTIPLER * users[socket.username]['speed']) );
     return finxy;
   }
 
@@ -199,13 +204,22 @@ loginRouter.post('/login', function (req, res) {
     return res.json({ 'status': 1 });
 
 
-  USERS[username] = {};
+  USERS[username] = {
+    'class': 0,
+    'player_xy': [0, 0],
+    'dead': false,
+    'canMove': true,
+    'immortal': false,
+    'bomb_planted': 0,
+    'live': 0,
+    'speed': 0,
+    'bomb_range': 0,
+    'bomb_amount': 0
+  };
   res.json({ 'status': 0, 'classes': CLASESS });
 });
 loginRouter.post('/reset', function (req, res) {
-  USERS = {};
-  PLAYERS = 0;
-  MAP_TEMP = JSON.parse(JSON.stringify(MAP));
+  restartGameStateOnServer();
   res.json({ 'status': 0 });
 });
 
@@ -236,18 +250,20 @@ app.use(function (err, req, res, next) {
 io.on('connection', (socket) => {
   console.log('connected');
 
+  // Wybór klasy postaci i logowanie przez socket
   socket.on('login', (data) => {
+    // Liczba graczy zbyt duża, odrzuć połączenie
     if (PLAYERS >= PLAYERS_NUMBER)
       return socket.emit('loggedIn', {
         'status': 1
       });
 
-
     username = data['UID']
     class_id = data['class_id']
     socket.username = username;
     appendPlayer(username, class_id);
-
+    
+    // Gracz poprawnie zalogowany
     ++PLAYERS;
     socket.emit('loggedIn', {
       'status': 0,
@@ -255,28 +271,79 @@ io.on('connection', (socket) => {
       'player_xy': USERS[username]['player_xy']
     });
 
+    // Liczba graczy wystarczająca aby rozpocząć grę
+    let connected_users = [];
+    for (let user of Object.keys(USERS)) {
+      let [x, y] = USERS[user]['player_xy']
+      connected_users.push({
+        'UID': user,
+        'lives': USERS[user]['live'],
+        'player_xy': {
+          'x': x,
+          'y': y,
+        },
+        'points': USERS[user]['points']
+      });
+    }
+    
+    // Gra się rozpoczęła, powiadom użytkowników
     if (PLAYERS == PLAYERS_NUMBER) {
       io.sockets.emit('start game', {
-        MAP,
-        USERS,
-        
+        'users': connected_users,
+        'map': MAP
       });
+
+      // Odświeżaj statystyki graczy
+      // Dodatkowo monitoruj stan rozgrywki i powiadom o jej zakończeniu
+      const statisticsInterval = setInterval(()=>{
+        let [playerStat, playersDead] = updatePlayerStatistics(USERS);
+
+        // Jeżeli został ostatni gracz, to gra się skończyła
+        // Zresetuj stan gry na serwerze i roześlij komunikat game over
+        if(PLAYERS - playersDead <= 1){
+          let winner = 'No one!';
+
+          // Wyszukaj zwycięzce i go uśmierć wszystkich, aby odłączyć sterowanie
+          for(let i = 0; i < playerStat.length; ++i){
+            if(playerStat[i]['lives'] != 0)
+              winner = playerStat[i]['UID'];
+            USERS[playerStat[i]['UID']]['dead'] = true;
+          }
+          
+          // Rozgłoś komunikat game over
+          io.sockets.emit('game over', {'winner': winner});
+          console.log('game over', winner);
+
+          // Zresetuj stan gry i czekaj na nowe połączenia
+          restartGameStateOnServer();
+
+          // Zatrzymaj rozsyłanie statystyk
+          clearInterval(statisticsInterval);
+        }
+      }, STATISTICS_TIME);
     }
   });
 
+  // Gracz się rozłączył, uśmierć go
+  socket.on('disconnect', ()=>{
+    // Gra może się zresetować, trzeba sprawdzić czy klucz istnieje
+    if (socket.username in USERS){
+      USERS[socket.username]['live'] = 0;
+      USERS[socket.username]['dead'] = true;
+    }
+    // Wykorzystaj 'hit player' do rozesłania komunikatu innym użytkownikom
+    io.sockets.emit('hit player', {'UID': socket.username, 'status': 'dead', "immortal_time": 0});
+    console.log('Odłączono', socket.username);
+  });
+
   // Ad.: 1.c. poruszanie się gracza
-  player_move_lock = false;
   socket.on('request_move', (direction) => {
-    if(player_move_lock)
+    if(socket.player_move_lock || USERS[socket.username]['dead'])
       return;
     
     // Spróbuj ruszyć graczem w danym kierunku
     let xy = movePlayer(socket.username, direction['direction']);
     if (xy !== null){
-      // Zablokuj ruch gracza na kilkaset milisekund
-      player_move_lock = true;
-      setTimeout(()=> player_move_lock = false, BASE_MOVE_TIME - (SPEED_MULTIPLER * USERS[socket.username]['speed']));
-
       // Sprawdź czy nie było kolizji z bonusem
       let index = bonusColision(xy, BONUSES);
       if(index !== -1){
@@ -341,14 +408,38 @@ io.on('connection', (socket) => {
       }
 
       // Jeżeli bomba kogoś zabiła to powiadom graczy
-      for(let i = 0; i < player_killed.length; ++i)
+      for(let i = 0; i < player_killed.length; ++i){
+        console.log(player_killed[i]);
         io.sockets.emit("hit player", player_killed[i]);
+      }
 
     }, BOMB_TIMER);
   });
 
 });
 
+function restartGameStateOnServer(){
+  USERS = {};
+  PLAYERS = 0;
+  BONUSES.slice(0, BONUSES.length);
+  BOMBS.slice(0, BONUSES.length);
+  MAP_TEMP = JSON.parse(JSON.stringify(MAP));
+}
+
+function updatePlayerStatistics(users = USERS){
+  let playersDead = 0;
+  let playerStat = [];
+  for (let user of Object.keys(users)) {
+    let [x, y] = users[user]['player_xy']
+    playerStat.push({
+      'UID': user,
+      'lives': users[user]['live'],
+      'points': users[user]['points']
+    });
+    playersDead += users[user]['dead']; // if true +1, else +0
+  }
+  return [playerStat, playersDead];
+}
 
 function bonusColision(xy, bonuses = BONUSES){
   const [x, y] = xy;
@@ -383,18 +474,19 @@ function bombExplode(xy, radius) {
 
   const checkColisionWithPlayer = (x, y, arr) => {
     for (let user of Object.keys(USERS)) {
-      let lives = USERS[user]['live'];
       let [px, py] = USERS[user]['player_xy'];
 
       // Jeżeli gracz stoi na wybuchu bomby i jest śmiertelny
       if(px === x && py === y && USERS[user]['immortal'] === false){
-        --lives;
-        if(lives == 0)
-          arr.push({'UID': user, 'status': 'dead'});
+        --USERS[user]['live'];
+        if(USERS[user]['live'] <= 0){
+          USERS[user]['dead'] = true;
+          arr.push({'UID': user, 'status': 'dead', 'immortal_time': 0});
+        }
         else{
-          setTimeout(()=>USERS[user]['immortal'] = false, IMMORTAL_TIME);
           USERS[user]['immortal'] = true;
-          arr.push({'UID': user, 'status': 'immortal'});
+          setTimeout(()=>USERS[user]['immortal'] = false, IMMORTAL_TIME);
+          arr.push({'UID': user, 'status': 'immortal', 'immortal_time': IMMORTAL_TIME});
         }
       }
     }
