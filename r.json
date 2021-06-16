@@ -102,7 +102,8 @@ Ad.: 1.d.
 
 server broadcast (nazwa eventu) "hit player":{
     "UID": "username", 
-    "status": "dead" | "nieśmiertelny"
+    "status": "dead" | "immortal",
+    "immortal_time": 3000 (ms)
 }
 
 
@@ -169,4 +170,25 @@ server broadcast: "update player statistics":{
             "points": 0
         }
     ],
+}
+
+Game start: 
+server broadcast: "start game":{
+    "users": [
+        {
+            "UID": "username",
+            "lives": 3,
+            "player_xy": {
+                "x": 1,
+                "y": 1
+            },
+            "points": 0
+        }
+    ],
+    "map": MAP[][]
+}
+
+Game over:
+server broadcast: "game over":{
+    "winner": "username"
 }
