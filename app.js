@@ -82,7 +82,7 @@ const BASE_MOVE_TIME = 500;
 const SPEED_MULTIPLER = 50;
 const MAX_SPEED_STAT = 5;
 
-const PLAYERS_NUMBER = 2;
+const PLAYERS_NUMBER = 4;
 const IMMORTAL_TIME = 3000;
 
 const BONUSES = [];
