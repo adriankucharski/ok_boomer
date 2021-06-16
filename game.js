@@ -126,12 +126,46 @@ scene("waiting", () => {
 	});
 });
 
+//define return to login button
+function returnButton() {
+
+	return {
+		update() {
+			if (this.isHovered()) {
+				this.color = rgb(210 / 255, 140 / 255, 170 / 255);
+			} else {
+				this.color = rgb(239 / 255, 170 / 255, 196 / 255);
+			}
+			
+		},
+		add() {
+			//add onClick handle
+			this.clicks(() => {
+				go("login");
+			});
+			
+			k.add([
+				text('New game', 4),
+				pos(this.pos.x + 100, this.pos.y + 2)
+			]);
+		}
+	}
+}
+
+
 
 scene('gameover', winner => {
 	add([
 		text("Gratulacje, " + winner),
 		pos(20, 20)
 	])
+	add([
+		rect(200, 10),
+		pos(20, 50 ),
+		color(239 / 255, 170 / 255, 196 / 255),
+		"button",
+		button(),
+	]);
 })
 scene("menu", (username, classes) => {
 	const helloUser = add([
@@ -212,7 +246,52 @@ scene("menu", (username, classes) => {
 	
 });
 
+var global_date;
+
+
+function updateTimer(){
+	let p = get("timer")[0];
+	var temp_date = new Date().getTime();
+	var seconds = parseInt((temp_date-global_date)/1000,0);
+	var min_dif = parseInt(seconds/60,0);
+	var sec_dif = parseInt(seconds-(min_dif*60),0);
+	
+	if(min_dif < 10){
+		if(sec_dif < 10)
+			p.text = '0'+min_dif+':'+'0'+sec_dif;
+		else
+			p.text = '0'+min_dif+':'+sec_dif;
+		
+	}else{
+		if(sec_dif < 10)
+			p.text = min_dif+':'+'0'+sec_dif;
+		else
+			p.text = min_dif+':'+sec_dif;
+		
+	}
+	
+}
+
 scene("main", (resp, username) => {
+	
+	//timer
+	
+	global_date = new Date().getTime();
+	add([
+		rect(25, 8),
+		pos(170, 5),
+		color(239 / 255, 170 / 255, 196 / 255),
+		
+	]);
+	add([
+		text("", 4),
+		pos(170 + 3, 5 + 2),
+		"timer"
+	]);
+	updateTimer();
+	setInterval(updateTimer, 1000);
+
+	
 	console.log(resp)
 	layers([
 		"bg",
@@ -272,7 +351,7 @@ scene("main", (resp, username) => {
 	socket.on('move player', (resp) => {
 		//console.log("MOVE" + JSON.stringify(resp))
 		let p = get("player_" + resp.UID)[0];
-
+		
 		p.pos.x = resp.player_xy.x*11;
 		p.pos.y = resp.player_xy.y*11;
 		
@@ -334,7 +413,7 @@ scene("main", (resp, username) => {
 	
 	var temp_counter = 0;
 	for (const u in resp.USERS) {
-		
+	
 		let usr = resp.USERS[u];
 		//name of class by name
 		var class_name;
@@ -349,32 +428,32 @@ scene("main", (resp, username) => {
 		//container
 		add([
 			rect(100, 25),
-			pos(170, 20 + (20 * temp_counter) ),
+			pos(170, 20 + (25 * temp_counter) ),
 			color(239 / 255, 170 / 255, 196 / 255),
 		]);
 		//add user
 		add([
 			text(u, 4),
-			pos(170 + 3, 20 + (20 * temp_counter) + 2),
+			pos(170 + 3, 20 + (25 * temp_counter) + 2),
 			"player_stats_name_"+u
 		]);
 		//add class 
 		k.add([
 			text(class_name, 4),
-			pos(170 + 3, 20 + (20 * temp_counter) + 7),
+			pos(170 + 3, 20 + (25 * temp_counter) + 7),
 			"player_stats_class_"+u
 		]);
 		//add users health
 		k.add([
 			text("Health " +usr.live, 4),
-			pos(170 + 3, 20 + (20 * temp_counter) + 12),
+			pos(170 + 3, 20 + (25 * temp_counter) + 12),
 			"player_stats_health_"+u
 		]);
 		
 		//add users points
 		k.add([
 			text("Points " +usr.points, 4),
-			pos(170 + 3, 20 + (20 * temp_counter) + 17),
+			pos(170 + 3, 20 + (25 * temp_counter) + 17),
 			"player_stats_points_"+u
 		]);
 		
@@ -466,6 +545,7 @@ scene("main", (resp, username) => {
 	//]);
 
 });
+
 
 
 
