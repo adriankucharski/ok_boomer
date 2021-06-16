@@ -91,7 +91,7 @@ const MAX_SPEED_STAT = 5;
 const PLAYERS_NUMBER = 2;
 const IMMORTAL_TIME = 3000;
 
-const STATISTICS_TIME = 500;
+const STATISTICS_TIME = 1000;
 
 const BONUSES = [];
 const BONUS_PROB = 1.0;
@@ -138,11 +138,6 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
     if (index > -1)
       positions.splice(index, 1);
   }
-
-  users[username]['dead'] = false;
-  users[username]['canMove'] = true;
-  users[username]['immortal'] = false;
-  users[username]['bomb_planted'] = 0;
   users[username]['player_xy'] = positions[0];
   users[username]['live'] = getStatOfClass(class_id, 'live');
   users[username]['speed'] = getStatOfClass(class_id, 'speed');
@@ -173,7 +168,7 @@ function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
     users[username]['canMove'] = false;
     setTimeout(() => {
       users[username]['canMove'] = true;
-    }, BASE_MOVE_TIME - (SPEED_MULTIPLER * users[socket.username]['speed']) );
+    }, BASE_MOVE_TIME - (SPEED_MULTIPLER * users[username]['speed']) );
     return finxy;
   }
 
@@ -214,7 +209,8 @@ loginRouter.post('/login', function (req, res) {
     'live': 0,
     'speed': 0,
     'bomb_range': 0,
-    'bomb_amount': 0
+    'bomb_amount': 0,
+    'points': 0
   };
   res.json({ 'status': 0, 'classes': CLASESS });
 });
@@ -312,13 +308,14 @@ io.on('connection', (socket) => {
           
           // Rozgłoś komunikat game over
           io.sockets.emit('game over', {'winner': winner});
-          console.log('game over', winner);
 
           // Zresetuj stan gry i czekaj na nowe połączenia
           restartGameStateOnServer();
 
           // Zatrzymaj rozsyłanie statystyk
           clearInterval(statisticsInterval);
+        } else { // W przeciwnym razie wyślij zaktualizowane statystyki
+          io.sockets.emit('update player statistics', {'users': playerStat});
         }
       }, STATISTICS_TIME);
     }
@@ -338,7 +335,7 @@ io.on('connection', (socket) => {
 
   // Ad.: 1.c. poruszanie się gracza
   socket.on('request_move', (direction) => {
-    if(socket.player_move_lock || USERS[socket.username]['dead'])
+    if(socket.player_move_lock || !(socket.username in USERS) || USERS[socket.username]['dead'])
       return;
     
     // Spróbuj ruszyć graczem w danym kierunku
@@ -403,13 +400,14 @@ io.on('connection', (socket) => {
         for(let i = 0; i < bonuses.length; ++i){
           BONUSES.push(bonuses[i]);
           io.sockets.emit("place bonus", bonuses[i]);
-          console.log(bonuses[i]);
         }
       }
 
-      // Jeżeli bomba kogoś zabiła to powiadom graczy
+      // Jeżeli bomba kogoś zabiła to powiadom graczy, oraz zwiększ wynik gracza
       for(let i = 0; i < player_killed.length; ++i){
-        console.log(player_killed[i]);
+        // Gracz nie powinien dostawać punktów za zabicie siebie
+        if(player_killed[i].UID != socket.username)
+          USERS[socket.username]['points']++;
         io.sockets.emit("hit player", player_killed[i]);
       }
 
