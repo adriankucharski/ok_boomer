@@ -126,12 +126,46 @@ scene("waiting", () => {
 	});
 });
 
+//define return to login button
+function returnButton() {
+
+	return {
+		update() {
+			if (this.isHovered()) {
+				this.color = rgb(210 / 255, 140 / 255, 170 / 255);
+			} else {
+				this.color = rgb(239 / 255, 170 / 255, 196 / 255);
+			}
+			
+		},
+		add() {
+			//add onClick handle
+			this.clicks(() => {
+				go("login");
+			});
+			
+			k.add([
+				text('New game', 4),
+				pos(this.pos.x + 100, this.pos.y + 2)
+			]);
+		}
+	}
+}
+
+
 
 scene('gameover', winner => {
 	add([
 		text("Gratulacje, " + winner),
 		pos(20, 20)
 	])
+	add([
+		rect(200, 10),
+		pos(20, 50 ),
+		color(239 / 255, 170 / 255, 196 / 255),
+		"button",
+		button(),
+	]);
 })
 scene("menu", (username, classes) => {
 	const helloUser = add([
@@ -212,7 +246,52 @@ scene("menu", (username, classes) => {
 	
 });
 
+var global_date;
+
+
+function updateTimer(){
+	let p = get("timer")[0];
+	var temp_date = new Date().getTime();
+	var seconds = parseInt((temp_date-global_date)/1000,0);
+	var min_dif = parseInt(seconds/60,0);
+	var sec_dif = parseInt(seconds-(min_dif*60),0);
+	
+	if(min_dif < 10){
+		if(sec_dif < 10)
+			p.text = '0'+min_dif+':'+'0'+sec_dif;
+		else
+			p.text = '0'+min_dif+':'+sec_dif;
+		
+	}else{
+		if(sec_dif < 10)
+			p.text = min_dif+':'+'0'+sec_dif;
+		else
+			p.text = min_dif+':'+sec_dif;
+		
+	}
+	
+}
+
 scene("main", (resp, username) => {
+	
+	//timer
+	
+	global_date = new Date().getTime();
+	add([
+		rect(25, 8),
+		pos(170, 5),
+		color(239 / 255, 170 / 255, 196 / 255),
+		
+	]);
+	add([
+		text("", 4),
+		pos(170 + 3, 5 + 2),
+		"timer"
+	]);
+	updateTimer();
+	setInterval(updateTimer, 1000);
+
+	
 	console.log(resp)
 	layers([
 		"bg",
@@ -302,8 +381,6 @@ scene("main", (resp, username) => {
 		smoothMove(p, resp.player_xy);
 		// p.pos.x = resp.player_xy.x*11;
 		// p.pos.y = resp.player_xy.y*11;
-		
-		
 	});
 
 	socket.on('remove block', (resp) => {
@@ -362,9 +439,11 @@ scene("main", (resp, username) => {
 
 	
 	var temp_counter = 0;
+
 	var height_multipler = 25;
 	for (let i = 0; i < resp.users.length; ++i) {	
 		let usr = resp.users[i];
+
 		//name of class by name
 		var class_name;
 		if(usr.class=='1')
@@ -383,6 +462,7 @@ scene("main", (resp, username) => {
 		]);
 		//add user
 		add([
+
 			text("Name " + usr.UID, 4),
 			pos(170 + 3, 20 + (height_multipler * temp_counter) + 2),
 			"player_stats_name_"+usr.UID
@@ -482,6 +562,7 @@ scene("main", (resp, username) => {
 	//]);
 
 });
+
 
 
 
