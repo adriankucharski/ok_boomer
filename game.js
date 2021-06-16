@@ -273,8 +273,35 @@ scene("main", (resp, username) => {
 		//console.log("MOVE" + JSON.stringify(resp))
 		let p = get("player_" + resp.UID)[0];
 
-		p.pos.x = resp.player_xy.x*11;
-		p.pos.y = resp.player_xy.y*11;
+		const linspace = (startValue, stopValue, cardinality) => {
+			var arr = [];
+			var step = (stopValue - startValue) / (cardinality - 1);
+			for (var i = 0; i < cardinality; i++)
+			  arr.push(startValue + (step * i));
+			return arr;
+		}
+		const smoothMove = (player, new_xy) => {
+			const x = new_xy.x;
+			const y = new_xy.y;
+			let x_space = linspace(player.pos.x, x * 11, 10);
+			let y_space = linspace(player.pos.y, y * 11, 10);
+			new Promise((resolve, reject)=>{
+				let i = 0;
+				const moveInterval = setInterval(()=>{
+					if(i >= x_space.length){
+						clearInterval(moveInterval);
+						return;
+					}
+					player.pos.x = x_space[i];
+					player.pos.y = y_space[i];
+					++i;
+				}, 20);
+			});
+		};
+
+		smoothMove(p, resp.player_xy);
+		// p.pos.x = resp.player_xy.x*11;
+		// p.pos.y = resp.player_xy.y*11;
 		
 		
 	});
@@ -422,23 +449,11 @@ scene("main", (resp, username) => {
 	});
 
 	keyDown("up", () => {
-		if(player.canMove){
-			player.canMove = false;
-			socket.emit('request_move', {direction: 'up'});
-			wait(0.2, () => {
-				player.canMove = true;
-			});
-		}
+		socket.emit('request_move', {direction: 'up'});
 	});
 
 	keyDown("down", () => {
-		if(player.canMove){
-			player.canMove = false;
-			socket.emit('request_move', {direction: 'back'});
-			wait(0.2, () => {
-				player.canMove = true;
-			});
-		}
+		socket.emit('request_move', {direction: 'back'});
 	});
 	keyPress("space", () => {	
 		socket.emit('request place bomb');		
