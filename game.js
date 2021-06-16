@@ -194,7 +194,7 @@ scene("menu", (username, classes) => {
 
 		});
 		socket.on('game over', (winner) => {
-			go('gameover', winner);
+			go('gameover', winner.winner);
 		})
 	}
 
@@ -298,7 +298,7 @@ scene("main", (resp, username) => {
 		"obj",
 		"ui",
 	], "obj");
-	const level = resp.MAP.map(e => e.join(''))
+	const level = resp.map.map(e => e.join(''))
 	socket.on('place bomb', (resp) => {
 		console.log("BOMB !" + resp)
 		const bomb = add([
@@ -351,11 +351,36 @@ scene("main", (resp, username) => {
 	socket.on('move player', (resp) => {
 		//console.log("MOVE" + JSON.stringify(resp))
 		let p = get("player_" + resp.UID)[0];
-		
-		p.pos.x = resp.player_xy.x*11;
-		p.pos.y = resp.player_xy.y*11;
-		
-		
+
+		const linspace = (startValue, stopValue, cardinality) => {
+			var arr = [];
+			var step = (stopValue - startValue) / (cardinality - 1);
+			for (var i = 0; i < cardinality; i++)
+			  arr.push(startValue + (step * i));
+			return arr;
+		}
+		const smoothMove = (player, new_xy) => {
+			const x = new_xy.x;
+			const y = new_xy.y;
+			let x_space = linspace(player.pos.x, x * 11, 10);
+			let y_space = linspace(player.pos.y, y * 11, 10);
+			new Promise((resolve, reject)=>{
+				let i = 0;
+				const moveInterval = setInterval(()=>{
+					if(i >= x_space.length){
+						clearInterval(moveInterval);
+						return;
+					}
+					player.pos.x = x_space[i];
+					player.pos.y = y_space[i];
+					++i;
+				}, 20);
+			});
+		};
+
+		smoothMove(p, resp.player_xy);
+		// p.pos.x = resp.player_xy.x*11;
+		// p.pos.y = resp.player_xy.y*11;
 	});
 
 	socket.on('remove block', (resp) => {
@@ -380,14 +405,16 @@ scene("main", (resp, username) => {
 	});
 
 	socket.on('update player statistics', (resp) => {
-		console.log(resp);
-		resp.users.forEach((u)=>{
-			let players_stats = get("player_stats_health_" + u.UID)[0];
-			players_stats.text = u.lives;
+		//console.log(resp);
+		for(let i = 0; i < resp.users.length; ++i){
+			let user = resp.users[i];
+			console.log(user);
+			let players_stats = get("player_stats_health_" + user.UID)[0];
+			players_stats.text = 'Health ' + user.lives;
 
-			players_stats = get("player_stats_points_" + u.points)[0];
-			players_stats.text = u.points;
-		})
+			players_stats = get("player_stats_points_" + user.UID)[0];
+			players_stats.text = 'Points ' + user.points;
+		};
 	});
 
 	const map = addLevel(level, {
@@ -412,9 +439,11 @@ scene("main", (resp, username) => {
 
 	
 	var temp_counter = 0;
-	for (const u in resp.USERS) {
-	
-		let usr = resp.USERS[u];
+
+	var height_multipler = 25;
+	for (let i = 0; i < resp.users.length; ++i) {	
+		let usr = resp.users[i];
+
 		//name of class by name
 		var class_name;
 		if(usr.class=='1')
@@ -427,52 +456,53 @@ scene("main", (resp, username) => {
 			class_name = "Rage Bomber";
 		//container
 		add([
-			rect(100, 25),
-			pos(170, 20 + (25 * temp_counter) ),
+			rect(100, height_multipler),
+			pos(170, 20 + (height_multipler * temp_counter) ),
 			color(239 / 255, 170 / 255, 196 / 255),
 		]);
 		//add user
 		add([
-			text(u, 4),
-			pos(170 + 3, 20 + (25 * temp_counter) + 2),
-			"player_stats_name_"+u
+
+			text("Name " + usr.UID, 4),
+			pos(170 + 3, 20 + (height_multipler * temp_counter) + 2),
+			"player_stats_name_"+usr.UID
 		]);
 		//add class 
 		k.add([
-			text(class_name, 4),
-			pos(170 + 3, 20 + (25 * temp_counter) + 7),
-			"player_stats_class_"+u
+			text("Class " + class_name, 4),
+			pos(170 + 3, 20 + (height_multipler * temp_counter) + 7),
+			"player_stats_class_"+usr.UID
 		]);
 		//add users health
 		k.add([
 			text("Health " +usr.live, 4),
-			pos(170 + 3, 20 + (25 * temp_counter) + 12),
-			"player_stats_health_"+u
+			pos(170 + 3, 20 + (height_multipler * temp_counter) + 12),
+			"player_stats_health_"+usr.UID
 		]);
 		
 		//add users points
 		k.add([
 			text("Points " +usr.points, 4),
-			pos(170 + 3, 20 + (25 * temp_counter) + 17),
-			"player_stats_points_"+u
+			pos(170 + 3, 20 + (height_multipler * temp_counter) + 17),
+			"player_stats_points_"+usr.UID
 		]);
 		
 		temp_counter++;
-		console.log(usr);
+		console.log('start game', usr);
 		add([
-			pos(usr.player_xy[0] * 11, usr.player_xy[1] * 11),
+			pos(usr.player_xy.x * 11, usr.player_xy.y * 11),
 			sprite("player"),
-			"player_"+u,
+			"player_"+usr.UID,
 			{
 				speed: usr.speed,
 				range: usr.bomb_range,
 				health: usr.lives,
 				protection: usr.immortal,
-				username: u,
+				username: usr.UID,
 				points: usr.points,
 				canMove: true,
 				playerText: add([
-					text(u, 2),
+					text(usr.UID, 2),
 				]),
 				update(){
 					this.playerText.pos = vec2(this.pos.x - (this.playerText.width/2) + 5, this.pos.y-2)
@@ -483,7 +513,6 @@ scene("main", (resp, username) => {
 	  }
 	
 	const player = get("player_" + username)[0];
-	console.log("player_"+username +":"+ player.range);
 
 
 	keyDown("left", () => {
@@ -500,23 +529,11 @@ scene("main", (resp, username) => {
 	});
 
 	keyDown("up", () => {
-		if(player.canMove){
-			player.canMove = false;
-			socket.emit('request_move', {direction: 'up'});
-			wait(0.2, () => {
-				player.canMove = true;
-			});
-		}
+		socket.emit('request_move', {direction: 'up'});
 	});
 
 	keyDown("down", () => {
-		if(player.canMove){
-			player.canMove = false;
-			socket.emit('request_move', {direction: 'back'});
-			wait(0.2, () => {
-				player.canMove = true;
-			});
-		}
+		socket.emit('request_move', {direction: 'back'});
 	});
 	keyPress("space", () => {	
 		socket.emit('request place bomb');		
