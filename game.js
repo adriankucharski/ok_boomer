@@ -36,6 +36,10 @@ loadSprite("bomb", "https://i.imgur.com/4GV5ZUa.png")
 loadSprite("fire", "https://i.imgur.com/LhiUi9O.png")
 loadSprite("brick", "https://i.imgur.com/DUooU1n.png")
 
+loadSprite("bonus_speed", "https://i.imgur.com/835sn3V.png")
+loadSprite("bonus_bomb_range", "https://i.imgur.com/9mXhjIr.png")
+loadSprite("bonus_bomb_amount", "https://i.imgur.com/OS6Hnu8.png")
+
 var SERVER_ADDRESS = 'http://localhost:3000';
 
 async function postData(url, data) {
@@ -121,6 +125,14 @@ scene("waiting", () => {
 		waitText.text = t;
 	});
 });
+
+
+scene('gameover', winner => {
+	add([
+		text("Gratulacje, " + winner),
+		pos(20, 20)
+	])
+})
 scene("menu", (username, classes) => {
 	const helloUser = add([
 		text("Witaj " + username + ". Wybierz klase:", 6),
@@ -147,6 +159,9 @@ scene("menu", (username, classes) => {
 			});
 
 		});
+		socket.on('game over', (winner) => {
+			go('gameover', winner);
+		})
 	}
 
 	//degine button lifecycle
@@ -220,6 +235,40 @@ scene("main", (resp, username) => {
 		let bomb = get("bomb_"+resp.bomb_xy.x+"_"+resp.bomb_xy.y)[0];
 		destroy(bomb);
 	});
+
+	socket.on('place bonus', (resp) =>{
+		if(resp.bonus_type == "speed"){
+			add([
+				sprite("bonus_speed"),
+				scale(0.33),
+				layer("bg"),
+				"bonus",
+				pos(resp.bonus_xy.x*11, resp.bonus_xy.y*11),
+			]);
+
+		}
+		if(resp.bonus_type == "bomb_range"){
+			add([
+				sprite("bonus_bomb_range"),
+				scale(0.33),
+				layer("bg"),
+				"bonus",
+				pos(resp.bonus_xy.x*11, resp.bonus_xy.y*11),
+			]);
+
+		}
+		if(resp.bonus_type == "bomb amount"){
+			add([
+				sprite("bonus_bomb_amount"),
+				scale(0.33),
+				layer("bg"),
+				"bonus",
+				pos(resp.bonus_xy.x*11, resp.bonus_xy.y*11),
+			]);
+
+		}
+	});
+
 	socket.on('move player', (resp) => {
 		//console.log("MOVE" + JSON.stringify(resp))
 		let p = get("player_" + resp.UID)[0];
@@ -240,6 +289,26 @@ scene("main", (resp, username) => {
 				}
 			});
 		});
+	});
+	
+	socket.on('remove bonus', (resp) => {
+		every("bonus", (obj) => {
+			if(obj.pos.x/11 == resp.bonus_xy.x && obj.pos.y/11 == resp.bonus_xy.y){
+				destroy(obj);
+			}
+		});
+
+	});
+
+	socket.on('update player statistics', (resp) => {
+		console.log(resp);
+		resp.users.forEach((u)=>{
+			let players_stats = get("player_stats_health_" + u.UID)[0];
+			players_stats.text = u.lives;
+
+			players_stats = get("player_stats_points_" + u.points)[0];
+			players_stats.text = u.points;
+		})
 	});
 
 	const map = addLevel(level, {
@@ -279,7 +348,7 @@ scene("main", (resp, username) => {
 			class_name = "Rage Bomber";
 		//container
 		add([
-			rect(100, 20),
+			rect(100, 25),
 			pos(170, 20 + (20 * temp_counter) ),
 			color(239 / 255, 170 / 255, 196 / 255),
 		]);
@@ -287,20 +356,28 @@ scene("main", (resp, username) => {
 		add([
 			text(u, 4),
 			pos(170 + 3, 20 + (20 * temp_counter) + 2),
-			"player_stats_name"+u
+			"player_stats_name_"+u
 		]);
 		//add class 
 		k.add([
 			text(class_name, 4),
 			pos(170 + 3, 20 + (20 * temp_counter) + 7),
-			"player_stats_class"+u
+			"player_stats_class_"+u
 		]);
 		//add users health
 		k.add([
 			text("Health " +usr.live, 4),
 			pos(170 + 3, 20 + (20 * temp_counter) + 12),
-			"player_stats_health"+u
+			"player_stats_health_"+u
 		]);
+		
+		//add users points
+		k.add([
+			text("Points " +usr.points, 4),
+			pos(170 + 3, 20 + (20 * temp_counter) + 17),
+			"player_stats_points_"+u
+		]);
+		
 		temp_counter++;
 		console.log(usr);
 		add([
@@ -310,29 +387,22 @@ scene("main", (resp, username) => {
 			{
 				speed: usr.speed,
 				range: usr.bomb_range,
-				health: usr.live,
+				health: usr.lives,
 				protection: usr.immortal,
 				username: u,
+				points: usr.points,
 				canMove: true,
 				playerText: add([
 					text(u, 2),
 				]),
 				update(){
-					//stats.text = `Health: ${this.health}`;
 					this.playerText.pos = vec2(this.pos.x - (this.playerText.width/2) + 5, this.pos.y-2)
 					this.resolve();
 				}
 			}
 		])
 	  }
-	  /* przyklad metody w jaki mozna aktualizowac poszczegolne pola za pomoca tagow
-	  for (const u in resp.USERS) {
-		const baby = get("player_stats_name" + u)[0];
-		console.log("Name: "+baby.text);
-		baby.text = new_name;
-	  }
-	  */
-
+	
 	const player = get("player_" + username)[0];
 	console.log("player_"+username +":"+ player.range);
 
