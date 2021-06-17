@@ -125,7 +125,6 @@ function getStatOfClass(class_id, stat, classes = CLASESS) {
 
 function appendPlayer(username, class_id, users = USERS, map = MAP) {
   console.log(username);
-  USERS[username]['class'] = class_id;
   
   let height = map.length;
   let width = map[0].length - 2;
@@ -138,6 +137,7 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
     if (index > -1)
       positions.splice(index, 1);
   }
+  users[username]['class'] = class_id;
   users[username]['player_xy'] = positions[0];
   users[username]['live'] = getStatOfClass(class_id, 'live');
   users[username]['speed'] = getStatOfClass(class_id, 'speed');
