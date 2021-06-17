@@ -83,6 +83,9 @@ scene("login", () => {
 		text(username, 6),
 		color(239 / 255, 170 / 255, 196 / 255),
 		pos(20, 30),
+		{
+			blinkChar: '|',
+		},
 
 		charInput((ch) => {
 			username += ch;
@@ -108,6 +111,16 @@ scene("login", () => {
 
 		})
 	]);
+
+	loop(0.5, () => {
+		if(userText.blinkChar == ''){
+			userText.blinkChar = '|';
+		}
+		else{
+			userText.blinkChar = '';
+		}
+		userText.text = username + userText.blinkChar;
+	});
 });
 scene("waiting", () => {
 	var i = 0;
