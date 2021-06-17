@@ -125,7 +125,9 @@ function getStatOfClass(class_id, stat, classes = CLASESS) {
 
 function appendPlayer(username, class_id, users = USERS, map = MAP) {
   console.log(username);
-  
+  if(users[username] == undefined){
+    return -1;
+  }
   let height = map.length;
   let width = map[0].length - 2;
 
@@ -257,7 +259,11 @@ io.on('connection', (socket) => {
     username = data['UID']
     class_id = data['class_id']
     socket.username = username;
-    appendPlayer(username, class_id);
+
+    //crash fix
+    if(appendPlayer(username, class_id) == -1){
+      return;
+    }
     
     // Gracz poprawnie zalogowany
     ++PLAYERS;
