@@ -191,7 +191,7 @@ scene("menu", (username, classes) => {
 			"transports": ["websocket"]
 		};
 	
-		socket = io.connect('http://localhost:3000', connectionOptions);
+		socket = io.connect(SERVER_ADDRESS, connectionOptions);
 		socket.on('connect', () => {
 			console.log("Connected as " + username + " (CLASS_ID: " + button.class.class_id + ")")
 			socket.emit('login', { UID: username, class_id: button.class.class_id });
@@ -204,6 +204,7 @@ scene("menu", (username, classes) => {
 
 		});
 		socket.on('game over', (winner) => {
+			socket.disconnect();
 			go('gameover', winner.winner);
 		})
 	}
