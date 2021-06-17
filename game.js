@@ -31,6 +31,7 @@ ws.onclose = function () {
 
 */
 loadSprite("player", "https://kaboomjs.com/pub/examples/img/guy.png")
+loadSprite("player_ghost", "https://i.imgur.com/3BTiLtR.png")
 loadSprite("border", "https://kaboomjs.com/pub/examples/img/steel.png")
 loadSprite("bomb", "https://i.imgur.com/4GV5ZUa.png")
 loadSprite("fire", "https://i.imgur.com/LhiUi9O.png")
@@ -53,7 +54,6 @@ const TICK_TIME_MS = 10;
 const TICK_NUMBER = 10;
 
 async function postData(url, data) {
-	console.log(data);
 	// Default options are marked with *
 	const response = await fetch(url, {
 		method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -93,6 +93,9 @@ scene("login", () => {
 		text(username, 6),
 		color(239 / 255, 170 / 255, 196 / 255),
 		pos(20, 30),
+		{
+			blinkChar: '|',
+		},
 
 		charInput((ch) => {
 			username += ch;
@@ -118,6 +121,16 @@ scene("login", () => {
 
 		})
 	]);
+
+	loop(0.5, () => {
+		if(userText.blinkChar == ''){
+			userText.blinkChar = '|';
+		}
+		else{
+			userText.blinkChar = '';
+		}
+		userText.text = username + userText.blinkChar;
+	});
 });
 scene("waiting", () => {
 	var i = 0;
@@ -469,8 +482,9 @@ scene("main", (resp, username) => {
 		pos(170 + 3, 5 + 2),
 		"timer"
 	]);
-	updateTimer();
-	setInterval(updateTimer, 1000);
+	loop(1, () => {
+		updateTimer();
+	});
 
 	
 	console.log(resp)
@@ -481,7 +495,6 @@ scene("main", (resp, username) => {
 	], "obj");
 	const level = resp.map.map(e => e.join(''))
 	socket.on('place bomb', (resp) => {
-		console.log("BOMB !" + resp)
 		const bomb = add([
 			sprite("bomb"),
 			layer("bg"),
@@ -566,7 +579,6 @@ scene("main", (resp, username) => {
 	});
 
 	socket.on('remove block', (resp) => {
-		console.log(resp);
 		resp.blocks.forEach( (b) => {
 			every("zniszczalny", (obj) => {
 				//console.log(obj.pos.x/11 + " == " + b.x + " // " + obj.pos.y/11 + " == " + b.y)
@@ -609,6 +621,27 @@ scene("main", (resp, username) => {
 			setTimeout(()=>{
 				player.changeSprite(username === resp.UID ? "player" : "enemy");
 			}, resp.immortal_time);
+		}
+
+		//ghost
+		const ghost = add([
+			sprite("player_ghost"),
+			pos(player.pos.x, player.pos.y),
+		]);
+		const moveYto = player.pos.y-22;
+		new Promise((resolve, reject)=>{
+			const moveInterval = setInterval(()=>{
+				if(ghost.pos.y <= moveYto){
+					clearInterval(moveInterval);
+					destroy(ghost);
+					return;
+				}
+				ghost.move(0, -20)
+			}, 20);
+		});
+				
+		if(resp.UID == username){
+			camShake(6);
 		}
 	});
 
@@ -705,9 +738,11 @@ scene("main", (resp, username) => {
 				canMove: true,
 				playerText: add([
 					text(usr.UID, 2),
+					(username === usr.UID)? color(239 / 255, 170 / 255, 196 / 255) : color(1,1,1),
+
 				]),
 				update(){
-					this.playerText.pos = vec2(this.pos.x - (this.playerText.width/2) + 5, this.pos.y-2)
+					this.playerText.pos = vec2(this.pos.x - (this.playerText.width/2) + 5.5, this.pos.y-2)
 					this.resolve();
 				},
 				setSprite(newSprite){
