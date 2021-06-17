@@ -36,11 +36,21 @@ loadSprite("bomb", "https://i.imgur.com/4GV5ZUa.png")
 loadSprite("fire", "https://i.imgur.com/LhiUi9O.png")
 loadSprite("brick", "https://i.imgur.com/DUooU1n.png")
 
+// Extra
+loadSprite("playerImmortal", "https://i.imgur.com/6ZhEJAB.png")
+loadSprite("enemyImmortal", "https://i.imgur.com/G8v6fZw.png")
+loadSprite("enemy", "https://i.imgur.com/QbLYNY2.png")
+
+
 loadSprite("bonus_speed", "https://i.imgur.com/835sn3V.png")
 loadSprite("bonus_bomb_range", "https://i.imgur.com/9mXhjIr.png")
 loadSprite("bonus_bomb_amount", "https://i.imgur.com/OS6Hnu8.png")
 
 var SERVER_ADDRESS = 'http://localhost:3000';
+
+// Liczba tick_time * tick_number = czas przejścia z kratki na kratkę w ms
+const TICK_TIME_MS = 10;
+const TICK_NUMBER = 10;
 
 async function postData(url, data) {
 	console.log(data);
@@ -181,7 +191,7 @@ scene("menu", (username, classes) => {
 			"transports": ["websocket"]
 		};
 	
-		socket = io.connect('http://localhost:3000', connectionOptions);
+		socket = io.connect(SERVER_ADDRESS, connectionOptions);
 		socket.on('connect', () => {
 			console.log("Connected as " + username + " (CLASS_ID: " + button.class.class_id + ")")
 			socket.emit('login', { UID: username, class_id: button.class.class_id });
@@ -194,6 +204,7 @@ scene("menu", (username, classes) => {
 
 		});
 		socket.on('game over', (winner) => {
+			socket.disconnect();
 			go('gameover', winner.winner);
 		})
 	}
@@ -533,8 +544,8 @@ scene("main", (resp, username) => {
 		const smoothMove = (player, new_xy) => {
 			const x = new_xy.x;
 			const y = new_xy.y;
-			let x_space = linspace(player.pos.x, x * 11, 10);
-			let y_space = linspace(player.pos.y, y * 11, 10);
+			let x_space = linspace(player.pos.x, x * 11, TICK_NUMBER);
+			let y_space = linspace(player.pos.y, y * 11, TICK_NUMBER);
 			new Promise((resolve, reject)=>{
 				let i = 0;
 				const moveInterval = setInterval(()=>{
@@ -545,7 +556,7 @@ scene("main", (resp, username) => {
 					player.pos.x = x_space[i];
 					player.pos.y = y_space[i];
 					++i;
-				}, 20);
+				}, TICK_TIME_MS);
 			});
 		};
 
@@ -583,27 +594,30 @@ scene("main", (resp, username) => {
 				destroy(obj);
 			}
 		});
+	});
 
+	socket.on('hit player', (resp) => {
+		let player = get(`player_${resp.UID}`)[0];
+		console.log(resp);
+
+		if(resp.status === 'dead'){
+			destroy(player.playerText);
+			destroy(player);
+		}
+		else if(resp.status === 'immortal'){
+			player.changeSprite(username === resp.UID ? "playerImmortal" : "enemyImmortal");
+			setTimeout(()=>{
+				player.changeSprite(username === resp.UID ? "player" : "enemy");
+			}, resp.immortal_time);
+		}
 	});
 
 	socket.on('update player statistics', (resp) => {
 		//console.log(resp);
 		for(let i = 0; i < resp.users.length; ++i){
 			let user = resp.users[i];
-			
 			let players_stats = get("player_stats_health_" + user.UID)[0];
-			//delete player fro mgame when his health == 0
 			players_stats.text = 'Health ' + user.lives;
-			if(user.lives == 0){
-				const player = get("player_" + user.UID)[0];
-				if(player != undefined){
-					destroy(player.playerText);
-					//player.playerText.text="";
-					destroy(player);
-				}
-					
-			}
-
 			players_stats = get("player_stats_points_" + user.UID)[0];
 			players_stats.text = 'Points ' + user.points;
 		};
@@ -617,17 +631,12 @@ scene("main", (resp, username) => {
 			sprite("border"),
 			solid(),
 			"zniszczalny"
-
-
 		],
 		"1": [
 			sprite("brick"),
 			solid(),
 			"niezniszczalny"
-			
-
 		],
-
 	});
 
 	
@@ -684,7 +693,7 @@ scene("main", (resp, username) => {
 		console.log('start game', usr);
 		add([
 			pos(usr.player_xy.x * 11, usr.player_xy.y * 11),
-			sprite("player"),
+			sprite(username === usr.UID ? "player" : "enemy"),
 			"player_"+usr.UID,
 			{
 				speed: usr.speed,
@@ -700,25 +709,21 @@ scene("main", (resp, username) => {
 				update(){
 					this.playerText.pos = vec2(this.pos.x - (this.playerText.width/2) + 5, this.pos.y-2)
 					this.resolve();
+				},
+				setSprite(newSprite){
+					this.sprite = newSprite;
 				}
 			}
 		])
 	  }
 	
-	const player = get("player_" + username)[0];
-
 
 	keyDown("left", () => {
-
-			socket.emit('request_move', {direction: 'left'});
-
-		
+		socket.emit('request_move', {direction: 'left'});
 	});
 
 	keyDown("right", () => {
-
-			socket.emit('request_move', {direction: 'right'});
-
+		socket.emit('request_move', {direction: 'right'});
 	});
 
 	keyDown("up", () => {
@@ -731,29 +736,6 @@ scene("main", (resp, username) => {
 	keyPress("space", () => {	
 		socket.emit('request place bomb');		
 	});
-	// player.collides("fire", (a) => {
-	// 	if (!player.protection) {
-	// 		player.protection = true;
-	// 		player.health--;
-	// 		camShake(12);
-	// 		if (player.health < 1) {
-	// 			destroy(player);
-	// 			destroy(userText);
-	// 		}
-
-	// 		wait(1, () => {
-	// 			player.protection = false;
-	// 		});
-
-	// 	}
-
-	// });
-
-	//const stats = add([
-	//	text(`Health: ${player.health}`, 3),
-	//	pos(150, 4),
-	//]);
-
 });
 
 
