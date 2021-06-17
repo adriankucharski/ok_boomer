@@ -263,7 +263,7 @@ function drawFire(bomb_x,bomb_y,radius){
 	
 	//to right
 	
-	for(i = 1; i <= radius; i++){
+	for(i = 0; i <= radius; i++){
 		var flag = true;
 		//check if there is block
 		every("zniszczalny", (obj) => {
@@ -303,7 +303,7 @@ function drawFire(bomb_x,bomb_y,radius){
 
 	}
 	//to left
-	for(i = 1; i <= radius; i++){
+	for(i = 0; i <= radius; i++){
 		var flag = true;
 		//check if there is block
 		every("zniszczalny", (obj) => {
@@ -346,7 +346,7 @@ function drawFire(bomb_x,bomb_y,radius){
 		
 	}
 	//to top
-	for(i = 1; i <= radius; i++){
+	for(i = 0; i <= radius; i++){
 		var flag = true;
 		//check if there is block
 		//for breakable objects
@@ -386,7 +386,7 @@ function drawFire(bomb_x,bomb_y,radius){
 		}		
 	}
 	//to down
-	for(i = 1; i <= radius; i++){
+	for(i = 0; i <= radius; i++){
 		var flag = true;
 		//check if there is block
 		every("zniszczalny", (obj) => {
