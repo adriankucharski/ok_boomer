@@ -146,7 +146,7 @@ function returnButton() {
 			
 			k.add([
 				text('New game', 4),
-				pos(this.pos.x + 100, this.pos.y + 2)
+				pos(this.pos.x + 80, this.pos.y + 2)
 			]);
 		}
 	}
@@ -163,8 +163,8 @@ scene('gameover', winner => {
 		rect(200, 10),
 		pos(20, 50 ),
 		color(239 / 255, 170 / 255, 196 / 255),
-		"button",
-		button(),
+		"returnButton",
+		returnButton(),
 	]);
 })
 scene("menu", (username, classes) => {
@@ -246,6 +246,176 @@ scene("menu", (username, classes) => {
 	
 });
 
+function drawFire(bomb_x,bomb_y,radius){
+	
+	//to right
+	
+	for(i = 1; i <= radius; i++){
+		var flag = true;
+		//check if there is block
+		every("zniszczalny", (obj) => {
+			//console.log(obj.pos.x/11 + " == " + b.x + " // " + obj.pos.y/11 + " == " + b.y)
+			if(obj.pos.x/11 == bomb_x+i && obj.pos.y/11 == bomb_y){
+				flag = false;
+			}
+		});
+		if(flag){
+			//check for solid object
+			every("niezniszczalny", (obj) => {
+				//console.log(obj.pos.x/11 + " == " + b.x + " // " + obj.pos.y/11 + " == " + b.y)
+				if(obj.pos.x/11 == bomb_x+i && obj.pos.y/11 == bomb_y){
+					flag = false;
+				}
+			});
+			if(flag){
+				const p = add([
+					sprite("fire"),
+					"fire",
+				
+					pos((bomb_x+i)*11, bomb_y*11)
+					//pos( player.gridPos.add(1,0))
+					
+				]);
+				wait(1, () => {
+					destroy(p);
+				
+				});
+			}else{
+				break;
+			}
+			
+		}else{
+			break;
+		}
+
+	}
+	//to left
+	for(i = 1; i <= radius; i++){
+		var flag = true;
+		//check if there is block
+		every("zniszczalny", (obj) => {
+			//console.log(obj.pos.x/11 + " == " + b.x + " // " + obj.pos.y/11 + " == " + b.y)
+			if(obj.pos.x/11 == bomb_x-i && obj.pos.y/11 == bomb_y){
+				flag = false;
+			}
+		});
+		if(flag){
+			//check for solid object
+			every("niezniszczalny", (obj) => {
+				//console.log(obj.pos.x/11 + " == " + b.x + " // " + obj.pos.y/11 + " == " + b.y)
+				if(obj.pos.x/11 == bomb_x-i && obj.pos.y/11 == bomb_y){
+					flag = false;
+				}
+			});
+			if(flag){
+				const p = add([
+					sprite("fire"),
+					"fire",
+				
+					pos( (bomb_x-i)*11, bomb_y*11)
+					//pos( player.gridPos.add(1,0))
+					
+				]);
+				wait(1, () => {
+					destroy(p);
+				
+				});
+			}else{
+				break;
+			}
+			
+		}else{
+			break;
+		}
+
+		
+	
+		
+	}
+	//to top
+	for(i = 1; i <= radius; i++){
+		var flag = true;
+		//check if there is block
+		//for breakable objects
+		every("zniszczalny", (obj) => {
+
+			if(obj.pos.x/11 == bomb_x && obj.pos.y/11 == bomb_y+i){
+				flag = false;
+			}
+		});
+		if(flag){
+			//check for solid object
+			every("niezniszczalny", (obj) => {
+
+				if(obj.pos.x/11 == bomb_x && obj.pos.y/11 == bomb_y+i){
+					flag = false;
+				}
+			});
+			if(flag){
+				const p = add([
+					sprite("fire"),
+					"fire",
+			
+					pos( bomb_x*11, (bomb_y+i)*11)
+					//pos( player.gridPos.add(1,0))
+					
+				]);
+				wait(1, () => {
+					destroy(p);
+				
+				});
+			}else{
+				break;
+			}
+			
+		}else{
+			break;
+		}		
+	}
+	//to down
+	for(i = 1; i <= radius; i++){
+		var flag = true;
+		//check if there is block
+		every("zniszczalny", (obj) => {
+
+			if(obj.pos.x/11 == bomb_x && obj.pos.y/11 == bomb_y-i){
+				flag = false;
+			}
+		});
+		if(flag){
+			//check for solid block
+			every("niezniszczalny", (obj) => {
+				if(obj.pos.x/11 == bomb_x && obj.pos.y/11 == bomb_y-i){
+					flag = false;
+				}
+			});
+			if(flag){
+				const p = add([
+					sprite("fire"),
+					"fire",
+			
+					pos( bomb_x*11, (bomb_y-i)*11)
+					//pos( player.gridPos.add(1,0))
+					
+				]);
+				wait(1, () => {
+					destroy(p);
+				
+				});
+			}else{
+				break;
+			}
+			
+		}else{
+			break;
+		}
+	}
+	
+}
+
+
+
+
 var global_date;
 
 
@@ -312,6 +482,7 @@ scene("main", (resp, username) => {
 	socket.on('place explode', (resp) =>{
 		//
 		let bomb = get("bomb_"+resp.bomb_xy.x+"_"+resp.bomb_xy.y)[0];
+		drawFire(resp.bomb_xy.x,resp.bomb_xy.y,resp.radius);
 		destroy(bomb);
 	});
 
@@ -390,6 +561,17 @@ scene("main", (resp, username) => {
 				//console.log(obj.pos.x/11 + " == " + b.x + " // " + obj.pos.y/11 + " == " + b.y)
 				if(obj.pos.x/11 == b.x && obj.pos.y/11 == b.y){
 					destroy(obj);
+					const p = add([
+						sprite("fire"),
+						"fire",
+				
+						pos( b.x*11, b.y*11)
+						//pos( player.gridPos.add(1,0))
+						
+					]);
+					wait(1, () => {
+						destroy(p);
+					});
 				}
 			});
 		});
@@ -408,9 +590,19 @@ scene("main", (resp, username) => {
 		//console.log(resp);
 		for(let i = 0; i < resp.users.length; ++i){
 			let user = resp.users[i];
-			console.log(user);
+			
 			let players_stats = get("player_stats_health_" + user.UID)[0];
+			//delete player fro mgame when his health == 0
 			players_stats.text = 'Health ' + user.lives;
+			if(user.lives == 0){
+				const player = get("player_" + user.UID)[0];
+				if(player != undefined){
+					destroy(player.playerText);
+					//player.playerText.text="";
+					destroy(player);
+				}
+					
+			}
 
 			players_stats = get("player_stats_points_" + user.UID)[0];
 			players_stats.text = 'Points ' + user.points;
@@ -431,6 +623,7 @@ scene("main", (resp, username) => {
 		"1": [
 			sprite("brick"),
 			solid(),
+			"niezniszczalny"
 			
 
 		],
