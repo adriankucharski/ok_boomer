@@ -384,6 +384,11 @@ io.on('connection', (socket) => {
     setTimeout(() => {
       // Usuń bombę z tablicy
       BOMBS.pop(xy);
+
+      // Serwer skończył grę, nie ma już graczy, dezaktywuj bomby
+      if(!(socket.username in USERS) || PLAYERS === 0)
+        return;
+
       USERS[socket.username]['bomb_planted']--;
       let radius = USERS[socket.username]['bomb_range'];
       let [removed_blocks, player_killed] = bombExplode(xy, radius);
