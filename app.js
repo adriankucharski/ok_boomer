@@ -189,7 +189,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.urlencoded({ extended: false }));
-
+app.use('/client', express.static(__dirname + '/client'));
 // Login router
 loginRouter.post('/login', function (req, res) {
   console.log('Request', req.body);
@@ -220,6 +220,7 @@ loginRouter.post('/reset', function (req, res) {
   restartGameStateOnServer();
   res.json({ 'status': 0 });
 });
+
 
 app.use('/', loginRouter);
 
