@@ -46,7 +46,7 @@ const CLASESS = [
     "class_id": "1",
     "class_name": "Zwinne nogi",
     "speed": 2,
-    "bomb_amount": 1,
+    "bomb amount": 1,
     "bomb_range": 1,
     "live": 3,
     "description": "Zwiększa szybkosc postaci o 1",
@@ -55,7 +55,7 @@ const CLASESS = [
     "class_id": "2",
     "class_name": "Bomber",
     "speed": 1,
-    "bomb_amount": 2,
+    "bomb amount": 2,
     "bomb_range": 1,
     "live": 3,
     "description": "Zwieksza liczbe bomb o 1",
@@ -64,7 +64,7 @@ const CLASESS = [
     "class_id": "3",
     "class_name": "Medyk",
     "speed": 1,
-    "bomb_amount": 1,
+    "bomb amount": 1,
     "bomb_range": 1,
     "live": 4,
     "description": "Zwieksza liczbe zyc o 1",
@@ -73,7 +73,7 @@ const CLASESS = [
     "class_id": "4",
     "class_name": "Rage Bomber",
     "speed": 1,
-    "bomb_amount": 1,
+    "bomb amount": 1,
     "bomb_range": 2,
     "live": 3,
     "description": "Zwieksza zasieg bomb o 1",
@@ -88,14 +88,14 @@ const BASE_MOVE_TIME = 500;
 const SPEED_MULTIPLER = 50;
 const MAX_SPEED_STAT = 5;
 
-const PLAYERS_NUMBER = 2;
+const PLAYERS_NUMBER = 3;
 const IMMORTAL_TIME = 3000;
 
 const STATISTICS_TIME = 1000;
 
 const BONUSES = [];
 const BONUS_PROB = 1.0;
-const BONUSES_T = ['speed', 'bomb_range', 'bomb_amount'];
+const BONUSES_T = ['speed', 'bomb_range', 'bomb amount'];
 let PLAYERS = 0;
 let MAP_TEMP = JSON.parse(JSON.stringify(MAP)); // clone trick
 
@@ -144,7 +144,8 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
   users[username]['live'] = getStatOfClass(class_id, 'live');
   users[username]['speed'] = getStatOfClass(class_id, 'speed');
   users[username]['bomb_range'] = getStatOfClass(class_id, 'bomb_range');
-  users[username]['bomb_amount'] = getStatOfClass(class_id, 'bomb_amount');
+  users[username]['bomb amount'] = getStatOfClass(class_id, 'bomb amount');
+  return 0;
 }
 
 function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
@@ -211,7 +212,7 @@ loginRouter.post('/login', function (req, res) {
     'live': 0,
     'speed': 0,
     'bomb_range': 0,
-    'bomb_amount': 0,
+    'bomb amount': 0,
     'points': 0
   };
   res.json({ 'status': 0, 'classes': CLASESS });
@@ -307,12 +308,13 @@ io.on('connection', (socket) => {
           let winner = 'No one!';
 
           // Wyszukaj zwycięzce i go uśmierć wszystkich, aby odłączyć sterowanie
-          for(let i = 0; i < playerStat.length; ++i){
-            if(playerStat[i]['lives'] != 0)
-              winner = playerStat[i]['UID'];
-            USERS[playerStat[i]['UID']]['dead'] = true;
+          for (let user of Object.keys(USERS)){
+            if(USERS[user]['dead'] === false){
+              winner = user;
+            }
+            USERS[user]['dead'] = true;
           }
-          
+
           // Rozgłoś komunikat game over
           io.sockets.emit('game over', {'winner': winner});
 
@@ -371,8 +373,12 @@ io.on('connection', (socket) => {
 
   // Ad.: 1.e. stawianie i wybuch bomb
   socket.on('request place bomb', () => {
+    // Gracz martwy, albo po zakończeniu gry nie może stawiać bomb
+    if (!(socket.username in USERS) || USERS[socket.username]['dead'])
+      return;
+
     // Gracz nie może postawić zbyt wielu bomb
-    if (USERS[socket.username]['bomb_planted'] >= USERS[socket.username]['bomb_amount'])
+    if (USERS[socket.username]['bomb_planted'] >= USERS[socket.username]['bomb amount'])
       return;
 
     // Nie można postawić bomby na bombie
@@ -440,7 +446,6 @@ function updatePlayerStatistics(users = USERS){
   let playersDead = 0;
   let playerStat = [];
   for (let user of Object.keys(users)) {
-    let [x, y] = users[user]['player_xy']
     playerStat.push({
       'UID': user,
       'lives': users[user]['live'],
