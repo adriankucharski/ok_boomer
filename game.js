@@ -47,7 +47,7 @@ loadSprite("bonus_speed", "https://i.imgur.com/835sn3V.png")
 loadSprite("bonus_bomb_range", "https://i.imgur.com/9mXhjIr.png")
 loadSprite("bonus_bomb_amount", "https://i.imgur.com/OS6Hnu8.png")
 
-var SERVER_ADDRESS = 'http://localhost:3000';
+var SERVER_ADDRESS = 'http://cf1c99d95811.ngrok.io';
 
 // Liczba tick_time * tick_number = czas przejścia z kratki na kratkę w ms
 const TICK_TIME_MS = 10;
@@ -493,6 +493,7 @@ scene("main", (resp, username) => {
 		"obj",
 		"ui",
 	], "obj");
+
 	const level = resp.map.map(e => e.join(''))
 	socket.on('place bomb', (resp) => {
 		const bomb = add([
@@ -702,23 +703,17 @@ scene("main", (resp, username) => {
 			pos(170 + 3, 20 + (height_multipler * temp_counter) + 2),
 			"player_stats_name_"+usr.UID
 		]);
-		//add class 
-		k.add([
-			text("Class " + class_name, 4),
-			pos(170 + 3, 20 + (height_multipler * temp_counter) + 7),
-			"player_stats_class_"+usr.UID
-		]);
 		//add users health
 		k.add([
 			text("Health " +usr.live, 4),
-			pos(170 + 3, 20 + (height_multipler * temp_counter) + 12),
+			pos(170 + 3, 20 + (height_multipler * temp_counter) + 7),
 			"player_stats_health_"+usr.UID
 		]);
 		
 		//add users points
 		k.add([
 			text("Points " +usr.points, 4),
-			pos(170 + 3, 20 + (height_multipler * temp_counter) + 17),
+			pos(170 + 3, 20 + (height_multipler * temp_counter) + 12),
 			"player_stats_points_"+usr.UID
 		]);
 		
