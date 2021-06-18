@@ -145,6 +145,7 @@ function appendPlayer(username, class_id, users = USERS, map = MAP) {
   users[username]['speed'] = getStatOfClass(class_id, 'speed');
   users[username]['bomb_range'] = getStatOfClass(class_id, 'bomb_range');
   users[username]['bomb amount'] = getStatOfClass(class_id, 'bomb amount');
+  return 0;
 }
 
 function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
