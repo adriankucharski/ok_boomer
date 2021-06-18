@@ -615,8 +615,22 @@ scene("main", (resp, username) => {
 		console.log(resp);
 
 		if(resp.status === 'dead'){
+			if(username === resp.UID){
+				add([
+					rect(width(), height()),
+					pos(0, 0),
+					color(rgba(0, 0, 0, 0.2)),
+				]);
+				add([
+					text("Game over."),
+					pos(width()/2 - 90, height()/2 - 10),
+				]);
+			}
+
 			destroy(player.playerText);
 			destroy(player);
+
+			
 		}
 		else if(resp.status === 'immortal'){
 			player.changeSprite(username === resp.UID ? "playerImmortal" : "enemyImmortal");
