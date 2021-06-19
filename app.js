@@ -170,6 +170,7 @@ function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
     // Zablokuj ruch gracza na kilkaset milisekund
     users[username]['canMove'] = false;
     setTimeout(() => {
+      // Sprawdź czy gra się nie skończyła
       if(username in users)
         users[username]['canMove'] = true;
     }, BASE_MOVE_TIME - (SPEED_MULTIPLER * users[username]['speed']) );
@@ -502,6 +503,7 @@ function bombExplode(xy, radius) {
         else{
           USERS[user]['immortal'] = true;
           setTimeout(()=>{
+            // Sprawdź czy gra się nie skończyła
             if (user in USERS)
               USERS[user]['immortal'] = false;
           }, IMMORTAL_TIME);
