@@ -170,7 +170,8 @@ function movePlayer(username, direction, users = USERS, map = MAP_TEMP) {
     // Zablokuj ruch gracza na kilkaset milisekund
     users[username]['canMove'] = false;
     setTimeout(() => {
-      users[username]['canMove'] = true;
+      if(username in users)
+        users[username]['canMove'] = true;
     }, BASE_MOVE_TIME - (SPEED_MULTIPLER * users[username]['speed']) );
     return finxy;
   }
@@ -499,7 +500,10 @@ function bombExplode(xy, radius) {
         }
         else{
           USERS[user]['immortal'] = true;
-          setTimeout(()=>USERS[user]['immortal'] = false, IMMORTAL_TIME);
+          setTimeout(()=>{
+            if (user in USERS)
+              USERS[user]['immortal'] = false;
+          }, IMMORTAL_TIME);
           arr.push({'UID': user, 'status': 'immortal', 'immortal_time': IMMORTAL_TIME});
         }
       }
